@@ -44,7 +44,7 @@
 
   // ---- Slot helpers -------------------------------------------------------
   function getCat(item) {
-    return (item && item.cat) ? item.cat : "clothes";
+    return (item && (item.category || item.cat)) ? (item.category || item.cat) : "clothes";
   }
 
   function getEquipSlot(itemId) {

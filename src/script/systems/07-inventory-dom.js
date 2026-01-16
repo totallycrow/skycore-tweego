@@ -12,7 +12,8 @@
   const { renderWardrobeSlots, slotHTML, matchesFilter } = Skycore.Systems.InventoryRender;
   const { ensureWardrobeHasEmptyRow } = Skycore.Systems.InventoryWardrobe;
 
-  function updateSlotEl(root, area, index) {
+  function updateSlotEl(root, area, index, opts = {}) {
+    const { skipSideEffects = false } = opts;
     const arr = getAreaArray(area);
     const itemId = arr[index];
     const item = getItem(itemId);
@@ -53,7 +54,7 @@
     slotEl.setAttribute("aria-label", item ? item.name : "Empty slot");
 
     // Update presentation score, character display, and comment if equipment changed
-    if (area === "eq") {
+    if (area === "eq" && !skipSideEffects) {
       // Invalidate presentation state cache so fresh data is computed
       if (Skycore.Systems.PresentationState && Skycore.Systems.PresentationState.invalidate) {
         Skycore.Systems.PresentationState.invalidate();
@@ -72,12 +73,14 @@
 
   function updateAllSlots(root, area) {
     const arr = getAreaArray(area);
-    // Update all slots - they all exist, just update their visibility
-    for (let i = 0; i < arr.length; i++) {
-      updateSlotEl(root, area, i);
-    }
-    // Update presentation score, character display, and comment if equipment area changed
+
     if (area === "eq") {
+      // Update all equipment slots without side effects
+      for (let i = 0; i < arr.length; i++) {
+        updateSlotEl(root, area, i, { skipSideEffects: true });
+      }
+
+      // Do expensive side effects once after all slots are updated
       // Invalidate presentation state cache so fresh data is computed
       if (Skycore.Systems.PresentationState && Skycore.Systems.PresentationState.invalidate) {
         Skycore.Systems.PresentationState.invalidate();
@@ -91,6 +94,12 @@
       if (Skycore.Systems.CharacterSidebar && Skycore.Systems.CharacterSidebar.updateAll) {
         Skycore.Systems.CharacterSidebar.updateAll();
       }
+      return;
+    }
+
+    // For non-equipment areas, update normally (no side effects needed)
+    for (let i = 0; i < arr.length; i++) {
+      updateSlotEl(root, area, i);
     }
   }
 
@@ -170,17 +179,14 @@
   /**
    * Update presentation score display in inventory UI
    * Called whenever equipment changes
+   * Uses PresentationState as single source of truth
    */
   function updatePresentationScore(root) {
     const presentationEl = root.querySelector(".char-presentation-score");
     if (!presentationEl) return;
 
-    let presentationScore = 0;
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
-      const result = Skycore.Systems.PresentationEngine.compute();
-      presentationScore = Math.round(result.presentationScore);
-    }
-
+    const data = Skycore.Systems.PresentationState?.get?.();
+    const presentationScore = data ? Math.round(data.presentationScore || 0) : 0;
     presentationEl.textContent = presentationScore;
   }
 

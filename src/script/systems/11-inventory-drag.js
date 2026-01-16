@@ -221,22 +221,6 @@
         bindInteractions(newRoot);
         setActiveTab(newRoot, currentTab);
       }
-      
-      if (action === "apply-set") {
-        const setId = btn.dataset.setId;
-        if (!setId) return;
-        
-        const { applySet } = Skycore.Systems.InventoryActions;
-        applySet(setId, root);
-      }
-      
-      if (action === "remove-set") {
-        const setId = btn.dataset.setId;
-        if (!setId) return;
-        
-        const { removeSet } = Skycore.Systems.InventoryActions;
-        removeSet(setId, root);
-      }
 
       // Immediately blur the clicked element to prevent iOS focus stickiness
       if (btn && btn instanceof HTMLElement) {
@@ -604,6 +588,19 @@
       if (toArea === "eq" && toItem && !isWearableClothes(toItem)) {
         AlertModal.open({ title: "Invalid state", message: "Equipped contains a non-wearable item." });
         return false;
+      }
+
+      // If moving into wardrobe and the target index is beyond the current array length,
+      // expand the array first (handles virtual empty slots from filtered render)
+      if (toArea === "wardrobe" && toIndex >= toArr.length) {
+        const rowsNeeded = Math.ceil((toIndex + 1) / CFG.invCols);
+        const currentRows = Math.ceil(toArr.length / CFG.invCols);
+        const rowsToAdd = rowsNeeded - currentRows;
+        for (let i = 0; i < rowsToAdd; i++) {
+          expandWardrobeOneRow();
+        }
+        // Refresh toArr reference after expansion (toItem is already undefined, which is correct for empty slot)
+        toArr = getAreaArray(toArea);
       }
 
       // If moving into wardrobe and there are no empty wardrobe slots, expand *before* the swap if needed.

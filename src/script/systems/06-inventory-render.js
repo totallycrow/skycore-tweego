@@ -159,18 +159,17 @@
     const totalSlotsNeeded = totalRows * CFG.invCols;
     const emptyNeeded = Math.max(0, totalSlotsNeeded - matchingCount);
     
-    // Ensure wardrobe has enough capacity for the slots we want to render
-    if (emptyNeeded > emptySlots.length) {
-      const additionalNeeded = emptyNeeded - emptySlots.length;
-      const currentLength = W.length;
-      // Expand wardrobe to have enough empty slots
-      for (let i = 0; i < additionalNeeded; i++) {
-        W.push(null);
-        emptySlots.push({ id: null, originalIndex: currentLength + i });
-      }
-    }
-    
+    // Use existing empty slots, and create virtual empty slots if needed
+    // Virtual slots use indices beyond the current array length (W.length + i)
+    // These will be expanded when items are actually dropped on them
     const emptyToRender = Math.min(emptySlots.length, emptyNeeded);
+    const virtualEmptyNeeded = Math.max(0, emptyNeeded - emptySlots.length);
+    const virtualEmptySlots = [];
+    
+    // Create virtual empty slots (don't mutate state - these are render-only)
+    for (let i = 0; i < virtualEmptyNeeded; i++) {
+      virtualEmptySlots.push({ id: null, originalIndex: W.length + i });
+    }
     
     // Sort matching items by original index to maintain relative order
     matchingItems.sort((a, b) => a.originalIndex - b.originalIndex);
@@ -178,10 +177,11 @@
     // Sort empty slots by original index
     emptySlots.sort((a, b) => a.originalIndex - b.originalIndex);
     
-    // Combine: matching items first, then empty slots
+    // Combine: matching items first, then real empty slots, then virtual empty slots
     const toRender = [
       ...matchingItems,
-      ...emptySlots.slice(0, emptyToRender)
+      ...emptySlots.slice(0, emptyToRender),
+      ...virtualEmptySlots
     ];
     
     // Render only the items we want to show

@@ -3178,7 +3178,7 @@ $(document).on(':storyinit', function () {
 
   // ---- Slot helpers -------------------------------------------------------
   function getCat(item) {
-    return (item && item.cat) ? item.cat : "clothes";
+    return (item && (item.category || item.cat)) ? (item.category || item.cat) : "clothes";
   }
 
   function getEquipSlot(itemId) {
@@ -3294,7 +3294,7 @@ $(document).on(':storyinit', function () {
         wardrobe: Array(WARD_MIN_SIZE).fill(null),
         sets: [],
         _seeded: false,
-        filter: { category: null, type: null, slot: null }
+        filter: { category: [], type: [], slot: [] }
       };
     }
 
@@ -3825,18 +3825,17 @@ $(document).on(':storyinit', function () {
     const totalSlotsNeeded = totalRows * CFG.invCols;
     const emptyNeeded = Math.max(0, totalSlotsNeeded - matchingCount);
     
-    // Ensure wardrobe has enough capacity for the slots we want to render
-    if (emptyNeeded > emptySlots.length) {
-      const additionalNeeded = emptyNeeded - emptySlots.length;
-      const currentLength = W.length;
-      // Expand wardrobe to have enough empty slots
-      for (let i = 0; i < additionalNeeded; i++) {
-        W.push(null);
-        emptySlots.push({ id: null, originalIndex: currentLength + i });
-      }
-    }
-    
+    // Use existing empty slots, and create virtual empty slots if needed
+    // Virtual slots use indices beyond the current array length (W.length + i)
+    // These will be expanded when items are actually dropped on them
     const emptyToRender = Math.min(emptySlots.length, emptyNeeded);
+    const virtualEmptyNeeded = Math.max(0, emptyNeeded - emptySlots.length);
+    const virtualEmptySlots = [];
+    
+    // Create virtual empty slots (don't mutate state - these are render-only)
+    for (let i = 0; i < virtualEmptyNeeded; i++) {
+      virtualEmptySlots.push({ id: null, originalIndex: W.length + i });
+    }
     
     // Sort matching items by original index to maintain relative order
     matchingItems.sort((a, b) => a.originalIndex - b.originalIndex);
@@ -3844,10 +3843,11 @@ $(document).on(':storyinit', function () {
     // Sort empty slots by original index
     emptySlots.sort((a, b) => a.originalIndex - b.originalIndex);
     
-    // Combine: matching items first, then empty slots
+    // Combine: matching items first, then real empty slots, then virtual empty slots
     const toRender = [
       ...matchingItems,
-      ...emptySlots.slice(0, emptyToRender)
+      ...emptySlots.slice(0, emptyToRender),
+      ...virtualEmptySlots
     ];
     
     // Render only the items we want to show
@@ -4108,7 +4108,8 @@ $(document).on(':storyinit', function () {
   const { renderWardrobeSlots, slotHTML, matchesFilter } = Skycore.Systems.InventoryRender;
   const { ensureWardrobeHasEmptyRow } = Skycore.Systems.InventoryWardrobe;
 
-  function updateSlotEl(root, area, index) {
+  function updateSlotEl(root, area, index, opts = {}) {
+    const { skipSideEffects = false } = opts;
     const arr = getAreaArray(area);
     const itemId = arr[index];
     const item = getItem(itemId);
@@ -4149,7 +4150,7 @@ $(document).on(':storyinit', function () {
     slotEl.setAttribute("aria-label", item ? item.name : "Empty slot");
 
     // Update presentation score, character display, and comment if equipment changed
-    if (area === "eq") {
+    if (area === "eq" && !skipSideEffects) {
       // Invalidate presentation state cache so fresh data is computed
       if (Skycore.Systems.PresentationState && Skycore.Systems.PresentationState.invalidate) {
         Skycore.Systems.PresentationState.invalidate();
@@ -4168,12 +4169,14 @@ $(document).on(':storyinit', function () {
 
   function updateAllSlots(root, area) {
     const arr = getAreaArray(area);
-    // Update all slots - they all exist, just update their visibility
-    for (let i = 0; i < arr.length; i++) {
-      updateSlotEl(root, area, i);
-    }
-    // Update presentation score, character display, and comment if equipment area changed
+
     if (area === "eq") {
+      // Update all equipment slots without side effects
+      for (let i = 0; i < arr.length; i++) {
+        updateSlotEl(root, area, i, { skipSideEffects: true });
+      }
+
+      // Do expensive side effects once after all slots are updated
       // Invalidate presentation state cache so fresh data is computed
       if (Skycore.Systems.PresentationState && Skycore.Systems.PresentationState.invalidate) {
         Skycore.Systems.PresentationState.invalidate();
@@ -4187,6 +4190,12 @@ $(document).on(':storyinit', function () {
       if (Skycore.Systems.CharacterSidebar && Skycore.Systems.CharacterSidebar.updateAll) {
         Skycore.Systems.CharacterSidebar.updateAll();
       }
+      return;
+    }
+
+    // For non-equipment areas, update normally (no side effects needed)
+    for (let i = 0; i < arr.length; i++) {
+      updateSlotEl(root, area, i);
     }
   }
 
@@ -4266,17 +4275,14 @@ $(document).on(':storyinit', function () {
   /**
    * Update presentation score display in inventory UI
    * Called whenever equipment changes
+   * Uses PresentationState as single source of truth
    */
   function updatePresentationScore(root) {
     const presentationEl = root.querySelector(".char-presentation-score");
     if (!presentationEl) return;
 
-    let presentationScore = 0;
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
-      const result = Skycore.Systems.PresentationEngine.compute();
-      presentationScore = Math.round(result.presentationScore);
-    }
-
+    const data = Skycore.Systems.PresentationState?.get?.();
+    const presentationScore = data ? Math.round(data.presentationScore || 0) : 0;
     presentationEl.textContent = presentationScore;
   }
 
@@ -6029,22 +6035,6 @@ $(document).on(':storyinit', function () {
         bindInteractions(newRoot);
         setActiveTab(newRoot, currentTab);
       }
-      
-      if (action === "apply-set") {
-        const setId = btn.dataset.setId;
-        if (!setId) return;
-        
-        const { applySet } = Skycore.Systems.InventoryActions;
-        applySet(setId, root);
-      }
-      
-      if (action === "remove-set") {
-        const setId = btn.dataset.setId;
-        if (!setId) return;
-        
-        const { removeSet } = Skycore.Systems.InventoryActions;
-        removeSet(setId, root);
-      }
 
       // Immediately blur the clicked element to prevent iOS focus stickiness
       if (btn && btn instanceof HTMLElement) {
@@ -6412,6 +6402,19 @@ $(document).on(':storyinit', function () {
       if (toArea === "eq" && toItem && !isWearableClothes(toItem)) {
         AlertModal.open({ title: "Invalid state", message: "Equipped contains a non-wearable item." });
         return false;
+      }
+
+      // If moving into wardrobe and the target index is beyond the current array length,
+      // expand the array first (handles virtual empty slots from filtered render)
+      if (toArea === "wardrobe" && toIndex >= toArr.length) {
+        const rowsNeeded = Math.ceil((toIndex + 1) / CFG.invCols);
+        const currentRows = Math.ceil(toArr.length / CFG.invCols);
+        const rowsToAdd = rowsNeeded - currentRows;
+        for (let i = 0; i < rowsToAdd; i++) {
+          expandWardrobeOneRow();
+        }
+        // Refresh toArr reference after expansion (toItem is already undefined, which is correct for empty slot)
+        toArr = getAreaArray(toArea);
       }
 
       // If moving into wardrobe and there are no empty wardrobe slots, expand *before* the swap if needed.

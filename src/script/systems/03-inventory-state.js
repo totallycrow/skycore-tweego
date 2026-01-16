@@ -24,7 +24,7 @@
         wardrobe: Array(WARD_MIN_SIZE).fill(null),
         sets: [],
         _seeded: false,
-        filter: { category: null, type: null, slot: null }
+        filter: { category: [], type: [], slot: [] }
       };
     }
 
