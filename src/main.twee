@@ -1,0 +1,49 @@
+:: StoryTitle
+Sandbox RPG
+
+:: StoryData
+{
+    "ifid": "6B2C7624-9641-4D1D-9A10-9839446F385A",
+    "format": "SugarCube",
+    "format-version": "2.37.3"
+}
+
+:: Start
+You wake up with the strange feeling that reality is buffering.
+
+A mirror glints. A drawer is half-open. Your phone is suspiciously silent.
+
+<div class="inv-actions" style="margin-top: 16px;">
+	<<link "INVENTORY">>
+		<<goto "Inventory">>
+	<</link>>
+
+	<<link "WARDROBE">>
+		<<goto "Wardrobe">>
+	<</link>>
+
+	<<link "MC STATS">>
+		<<goto "MC Stats">>
+	<</link>>
+</div>
+
+
+:: Inventory
+<<gridInv>>
+
+<<backButton "Start">>
+
+
+:: Wardrobe
+You open the wardrobe.
+
+Right now it's just an ominous void with hangers that look judgmental.
+(Next step: we'll build the wardrobe UI from `State.variables.invSys.wardrobe`.)
+
+<<backButton "Start">>
+
+
+:: MC Stats
+<<mcStats>>
+
+<<backButton "Start">>

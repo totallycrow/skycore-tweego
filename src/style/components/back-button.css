@@ -1,0 +1,107 @@
+/* === Back Button Component === */
+
+/* Fixed container at bottom of viewport */
+.back-button-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  pointer-events: none; /* Allow clicks to pass through container */
+  padding: 12px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom)); /* Respect safe area on mobile */
+  min-height: 72px; /* Ensure container has height for absolutely positioned child */
+}
+
+/* Semi-transparent backdrop with blur */
+.back-button-backdrop {
+  width: 100%;
+  max-width: 720px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: auto; /* Re-enable clicks on backdrop */
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: left 0.2s ease;
+  box-sizing: border-box; /* Include padding in width calculation */
+  overflow: hidden; /* Prevent button from overflowing backdrop */
+}
+
+/* Wider on desktop */
+@media (min-width: 769px) {
+  .back-button-backdrop {
+    max-width: 900px;
+  }
+}
+
+/* Button styling */
+.back-button {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  user-select: none;
+  box-sizing: border-box; /* Include padding and border in width calculation */
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+}
+
+.back-button:active {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(0);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Ensure button doesn't interfere with page scrolling */
+.back-button-container::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin-bottom: -1px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .back-button-container {
+    padding: 10px;
+  }
+
+  .back-button-backdrop {
+    padding: 10px;
+    border-radius: 14px 14px 0 0;
+    width: 80%;
+    max-width: none;
+  }
+
+  .back-button {
+    min-height: 44px;
+    font-size: 0.9rem;
+    padding: 10px 16px;
+  }
+}

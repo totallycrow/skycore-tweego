@@ -1,0 +1,12 @@
+:: NPC Widgets [widget]
+<<widget "displayNPC">>
+    <<set _npc = NPC.get(_args[0])>>
+    <div class="npc-profile">
+        <h3>_npc.name</h3>
+        <p>Occupation: _npc.occupation</p>
+        <div class="stat-bar-bg">
+            <div class="stat-bar-fill" <<print 'style="width: ' + _npc.femLevel + '%;"'>> ></div>
+        </div>
+        <span>Feminization: _npc.femLevel%</span>
+    </div>
+<</widget>>

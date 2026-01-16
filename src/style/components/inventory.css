@@ -1,0 +1,1217 @@
+/* === Inventory / Equipment Grid UI (mobile-first) === */
+
+:root {
+  --slot-size: clamp(52px, 12vw, 78px);
+  --slot-gap: 10px;
+  --panel-gap: 12px;
+  --panel-pad: 12px;
+  --radius: 14px;
+  --border: 1px solid rgba(255, 255, 255, 0.14);
+
+  /* Modal sizing */
+  --modal-w: min(92vw, 420px);
+  --modal-h: min(84vh, 640px);
+}
+
+.inv-ui {
+  display: grid;
+  gap: var(--panel-gap);
+  align-items: start;
+  grid-template-columns: 1fr;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.inv-panel {
+  padding: var(--panel-pad);
+  border: var(--border);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
+}
+
+.inv-title {
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  font-size: 1.05rem;
+  text-align: center;
+  opacity: 0.95;
+}
+
+/* Equipped row: character left, eq grid right */
+.eq-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Character placeholder */
+.char-card {
+  flex: 1 1 50%;
+  width: 50%;
+  max-width: 50%;
+  height: calc(var(--slot-size) * 5 + var(--slot-gap) * 4);
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  /* FIX: allow page scroll gestures on mobile */
+  touch-action: pan-y;
+
+  user-select: none;
+}
+
+.char-card img {
+  width: 78%;
+  max-width: 78%;
+  height: auto;
+  max-height: calc(100% - 80px);
+  object-fit: contain;
+  opacity: 0.95;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Character Display Engine */
+.char-display {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.char-display-container {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 0;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.char-display-layers {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.char-display-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.char-display-layer-base {
+  z-index: 1;
+}
+
+.char-display-layer-clothing {
+  z-index: 3;
+}
+
+.char-display-sprite {
+  width: auto !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain;
+  opacity: 0.95;
+  display: block;
+  flex-shrink: 0;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Angle-specific styles (for future expansion) */
+.char-display-angle-front .char-display-sprite {
+  /* Front view - default */
+}
+
+.char-display-angle-side .char-display-sprite {
+  /* Side view - for future expansion */
+}
+
+.char-display-angle-back .char-display-sprite {
+  /* Back view - for future expansion */
+}
+
+.char-presentation {
+  margin-top: 2px;
+  padding-top: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.char-presentation-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.char-presentation-score {
+  font-size: 1.5rem;
+  font-weight: 900;
+  opacity: 0.95;
+  color: rgba(120, 200, 255, 0.9);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.char-outfit-vibes {
+  margin-top: 2px;
+  padding-top: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-bottom: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.char-outfit-vibes-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.char-outfit-vibes-tags {
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.85;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* Grids */
+.inv-grid {
+  display: grid;
+  gap: var(--slot-gap);
+
+  /* FIX: allow page scroll gestures on mobile */
+  touch-action: pan-y;
+
+  user-select: none;
+}
+
+/* Equipment: 2 cols × 5 rows */
+.inv-grid.eq {
+  grid-template-columns: repeat(2, var(--slot-size));
+  grid-auto-rows: var(--slot-size);
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Container div wrapping eq grid and actions */
+.eq-row > div:not(.char-card) {
+  flex: 1 1 50%;
+  width: 50%;
+  max-width: 50%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Character outfit comment (old - inside eq-row, kept for compatibility) */
+.inv-character-comment {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  opacity: 0.85;
+  font-style: italic;
+  width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* Character outfit comment (full width - outside eq-row) */
+.inv-character-comment-full {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius, 14px);
+  border: var(--border, 1px solid rgba(255, 255, 255, 0.14));
+  background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.85;
+  font-style: italic;
+  width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.inv-character-comment[data-outfit-state="inappropriate"],
+.inv-character-comment-full[data-outfit-state="inappropriate"] {
+  background: rgba(210, 55, 55, 0.15);
+  border-color: rgba(210, 55, 55, 0.35);
+  opacity: 0.9;
+}
+
+.inv-character-comment[data-outfit-state="embarrassed_both"],
+.inv-character-comment[data-outfit-state="embarrassed_bra"],
+.inv-character-comment[data-outfit-state="embarrassed_panties"],
+.inv-character-comment-full[data-outfit-state="embarrassed_both"],
+.inv-character-comment-full[data-outfit-state="embarrassed_bra"],
+.inv-character-comment-full[data-outfit-state="embarrassed_panties"] {
+  background: rgba(255, 200, 50, 0.15);
+  border-color: rgba(255, 200, 50, 0.35);
+  opacity: 0.88;
+}
+
+.inv-character-comment[data-outfit-state="comfortable"],
+.inv-character-comment-full[data-outfit-state="comfortable"] {
+  background: rgba(40, 170, 95, 0.12);
+  border-color: rgba(40, 170, 95, 0.3);
+  opacity: 0.85;
+}
+
+.inv-character-comment[data-outfit-state="needs_underwear"],
+.inv-character-comment-full[data-outfit-state="needs_underwear"] {
+  background: rgba(255, 165, 0, 0.15);
+  border-color: rgba(255, 165, 0, 0.35);
+  opacity: 0.88;
+}
+
+/* Inventory: 4 cols × 5 rows - fixed grid, always shows 20 slots */
+.inv-grid.inv {
+  grid-template-columns: repeat(4, var(--slot-size));
+  grid-template-rows: repeat(5, var(--slot-size));
+  justify-content: center;
+  /* Ensure items are placed in DOM order (left-to-right, top-to-bottom) */
+  grid-auto-flow: row;
+}
+
+/* Wardrobe: 4 cols, dynamic rows (grows as needed) */
+.inv-grid.inv[data-grid="wardrobe"] {
+  grid-template-rows: none;
+  grid-auto-rows: var(--slot-size);
+}
+
+/* Slot */
+.inv-slot {
+  width: var(--slot-size);
+  height: var(--slot-size);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.inv-slot:active {
+  transform: translateY(1px);
+}
+.inv-slot.is-filled {
+  background: rgba(255, 255, 255, 0.1);
+  /* Prevent scrolling when touching filled slots to allow reliable dragging */
+  touch-action: none;
+}
+
+.inv-slot.drop-target {
+  outline: 2px solid rgba(120, 200, 255, 0.9);
+  outline-offset: 2px;
+}
+
+/* Item emoji */
+.inv-item {
+  font-size: clamp(22px, 6vw, 34px);
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Drag ghost */
+.inv-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  width: var(--slot-size);
+  height: var(--slot-size);
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  transform: translate(-9999px, -9999px);
+  pointer-events: none;
+}
+
+/* During drag: hard-lock touch so page cannot scroll while dragging */
+body.inv-dragging {
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+/* === Tabs + Wardrobe (additive; doesn't modify existing styling) ========= */
+
+.inv-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin-bottom: 10px;
+}
+
+.inv-tab {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  padding: 6px 6px;
+  cursor: pointer;
+  opacity: 0.75;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Removed duplicate highlight - using aria-selected underline style instead */
+
+.inv-tab:focus:not(:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+.inv-tab:focus-visible {
+  outline: 2px solid rgba(120, 200, 255, 0.9);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+.inv-tabpanel {
+  display: none;
+}
+
+.inv-ui[data-tab="inventory"] .inv-tabpanel[data-tab-panel="inventory"],
+.inv-ui[data-tab="itemsets"] .inv-tabpanel[data-tab-panel="itemsets"] {
+  display: block;
+}
+
+.inv-subactions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 2px 0 12px;
+}
+
+.inv-link {
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 6px 6px;
+  font-weight: 900;
+  cursor: pointer;
+  opacity: 0.85;
+  /* Set tap highlight to match text color (white/light) so it's invisible */
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.3);
+}
+
+.inv-link:active {
+  transform: translateY(1px);
+}
+
+.inv-link.inv-cleanup {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 4px;
+  /* Set text color to match iOS highlight blue so highlight is invisible */
+  color: rgba(120, 200, 255, 0.9);
+  text-decoration: none;
+}
+
+/* Hide focus brightness/overlay on cleanup buttons using ::before pseudo-element */
+.inv-link.inv-cleanup:focus::before {
+  opacity: 0 !important;
+}
+
+.inv-link.inv-cleanup:hover::before {
+  opacity: 0.08 !important;
+}
+
+.inv-link.inv-subaction {
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.3;
+}
+
+.inv-link.inv-subaction.has-filter {
+  opacity: 1;
+  font-weight: 700;
+}
+
+.inv-link.inv-subaction.has-filter:hover {
+  opacity: 1; /* Prevent hover from changing opacity when filter is active */
+}
+
+.inv-subactions-sep {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.inv-wardrobe-title {
+  margin-top: 18px;
+}
+
+.inv-ward-slot {
+  position: relative;
+
+  /* Allow page scroll gestures on mobile */
+  touch-action: pan-y;
+}
+
+.inv-count {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.inv-empty-state {
+  text-align: center;
+  opacity: 0.75;
+  padding: 18px 8px;
+}
+
+/* === Sets Display ========================================================= */
+
+.inv-sets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.inv-set-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inv-set-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inv-set-name {
+  font-weight: 900;
+  font-size: 1rem;
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
+.inv-set-items-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.inv-set-item-preview {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.inv-set-empty-msg {
+  opacity: 0.6;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.inv-set-actions {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.inv-link.inv-set-action {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  opacity: 0.85;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: opacity 0.15s ease;
+}
+
+.inv-link.inv-set-action:active {
+  opacity: 0.7;
+  transform: translateY(1px);
+}
+
+.inv-link.inv-set-action-apply {
+  background: rgba(40, 170, 95, 0.22);
+  border-color: rgba(40, 170, 95, 0.55);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.inv-link.inv-set-action-remove {
+  background: rgba(210, 55, 55, 0.22);
+  border-color: rgba(210, 55, 55, 0.55);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.inv-set-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.8);
+  margin: 4px 0;
+}
+
+/* Set modal styles */
+.inv-set-equipped-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.inv-set-item-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  position: relative;
+}
+
+.inv-set-item-icon {
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.inv-set-item-name {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  flex: 1;
+}
+
+.inv-set-item-remove {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 4px 8px;
+  opacity: 0.7;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  margin-left: auto;
+}
+
+.inv-set-item-remove:hover {
+  opacity: 1;
+}
+
+.inv-set-item-remove:active {
+  opacity: 0.5;
+  transform: scale(0.9);
+}
+
+.inv-set-name-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.inv-set-name-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.inv-set-name-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.inv-set-name-input:focus {
+  outline: none;
+  border-color: rgba(120, 200, 255, 0.6);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.inv-set-name-input::placeholder {
+  opacity: 0.5;
+}
+
+/* Section action buttons (under grids) */
+.inv-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  margin-top: 12px;
+}
+
+.inv-actions .inv-btn {
+  width: min(520px, 100%);
+}
+
+/* Centered actions (full width, below comment) */
+.inv-actions-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.inv-actions-centered .inv-btn {
+  width: min(520px, 100%);
+}
+
+.inv-actions-centered .inv-btn.inv-btn-full {
+  width: 100%;
+}
+
+.inv-actions-centered .inv-link {
+  text-align: center;
+}
+
+/* Presentation Box */
+/* === Buttons ============================================================= */
+
+.inv-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.inv-btn:active {
+  transform: translateY(1px);
+}
+
+/* Color-coded variants */
+.inv-btn.inv-wear {
+  background: rgba(40, 170, 95, 0.22); /* green */
+  border-color: rgba(40, 170, 95, 0.55);
+}
+
+/* REMOVE overrides WEAR when both classes present */
+.inv-btn.inv-remove {
+  background: rgba(210, 55, 55, 0.22); /* red */
+  border-color: rgba(210, 55, 55, 0.55);
+}
+
+.inv-btn.inv-wardrobe {
+  background: rgba(190, 95, 10, 0.24); /* dark orange */
+  border-color: rgba(190, 95, 10, 0.55);
+}
+
+/* Neutral action */
+.inv-btn.inv-neutral {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+
+/* iOS (Safari/Chrome) focus "stickiness" cleanup */
+.inv-ui button,
+.inv-ui [role="button"] {
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove cursor: pointer on mobile to prevent blue highlight (Chrome 88+) */
+@media (hover: none) and (pointer: coarse) {
+  .inv-ui button,
+  .inv-ui [role="button"],
+  .inv-slot {
+    cursor: default;
+  }
+}
+
+/* Remove focus styles for non-keyboard focus (mouse/touch clicks) */
+.inv-slot:focus:not(:focus-visible),
+.inv-btn:focus:not(:focus-visible),
+.inv-link:focus:not(:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+  text-decoration: none;
+}
+
+/* Keep accessibility for keyboard users - show focus ring only for keyboard navigation */
+.inv-slot:focus-visible,
+.inv-btn:focus-visible,
+.inv-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* === Common Overlay ====================================================== */
+
+.inv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.inv-modal-overlay.is-open {
+  display: flex;
+}
+
+.inv-modal-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.16);
+  margin: 0 14px;
+}
+
+.inv-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 10px 14px;
+}
+
+.inv-modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+
+  /* WRAP title (no truncation) */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+
+  flex: 1;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.inv-modal-close {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.inv-modal-close:active {
+  transform: translateY(1px);
+}
+
+/* === Item Details Modal ================================================== */
+
+.inv-modal {
+  width: var(--modal-w);
+  height: var(--modal-h);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(25, 27, 30, 0.96);
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.inv-modal-body {
+  padding: 12px 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.inv-modal-scroll {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 6px;
+  flex: 1;
+}
+
+.inv-modal-desc {
+  opacity: 0.92;
+  line-height: 1.35;
+  font-size: 0.98rem;
+  white-space: pre-wrap;
+}
+
+.inv-modal-subtitle {
+  margin: 10px 0 6px 0;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.inv-modal-info {
+  margin: 0 0 4px 0;
+  opacity: 0.95;
+  padding-left: 4px;
+}
+
+.inv-req-list,
+.inv-bonus-list,
+.inv-effect-list {
+  margin: 0;
+  padding-left: 18px;
+  opacity: 0.95;
+}
+.inv-req-list li,
+.inv-bonus-list li,
+.inv-effect-list li {
+  margin: 6px 0;
+}
+
+.inv-modal-note {
+  font-size: 0.92rem;
+  opacity: 0.85;
+  margin-top: 10px;
+}
+
+.inv-modal-footer {
+  padding: 12px 14px 14px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+/* === Confirm / Alert Modals ============================================= */
+
+.inv-confirm-modal,
+.inv-alert-modal {
+  width: var(--modal-w);
+  max-height: min(68vh, 520px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(25, 27, 30, 0.96);
+  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.inv-confirm-body,
+.inv-alert-body {
+  padding: 14px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inv-confirm-msg,
+.inv-alert-msg {
+  opacity: 0.92;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.inv-confirm-footer,
+.inv-alert-footer {
+  padding: 12px 14px 14px 14px;
+  display: grid;
+  gap: 10px;
+}
+
+/* No hover effects on mobile: only apply hover on true-hover devices */
+@media (hover: hover) and (pointer: fine) {
+  .inv-btn:hover {
+    filter: brightness(1.05);
+  }
+  .inv-modal-close:hover {
+    filter: brightness(1.08);
+  }
+}
+
+/* Additions for Inventory tabs + divider + subactions row.
+   Paste at END of your existing inventory.css (do not remove existing styles). */
+
+/* Tabs row */
+.inv-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.inv-tab {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 6px 4px;
+  cursor: pointer;
+  position: relative;
+  opacity: 0.9;
+}
+
+.inv-tab[aria-selected="true"] {
+  opacity: 1;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 8px;
+}
+
+/* Divider that sits under tabs, above Filter/Create */
+.inv-tabs-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+  margin: 10px 0 8px;
+  width: 100%;
+}
+
+/* Filter/Create row under divider */
+.inv-subactions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.inv-link {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.9;
+  /* Set tap highlight to match text color (white/light) so it's invisible */
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.3);
+}
+
+.inv-link:hover {
+  opacity: 1;
+}
+
+/* Inventory tab panels */
+.inv-tabpanels {
+  display: block;
+}
+
+.inv-tabpanel[hidden] {
+  display: none !important;
+}
+
+/* Wardrobe title spacing */
+.inv-wardrobe-title {
+  margin-top: 18px;
+}
+
+/* Small empty placeholder for Item Sets */
+.inv-empty-state {
+  opacity: 0.8;
+  text-align: center;
+  padding: 16px 0 10px;
+}
+
+/* Filter Modal - uses same styling as other modals */
+.inv-filter-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.inv-filter-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inv-filter-header {
+  font-weight: 900;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+  opacity: 0.95;
+}
+
+.inv-filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inv-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.inv-filter-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: rgba(120, 200, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.inv-filter-item span {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  flex: 1;
+}
+
+.inv-filter-item:hover span {
+  opacity: 1;
+}
+
+.inv-filter-item input[type="checkbox"]:checked + span {
+  font-weight: 700;
+  opacity: 1;
+}
+
+/* Hide item icon when filtered out, but keep slot visible */
+.inv-slot.inv-item-hidden .inv-item {
+  display: none !important;
+}
+
+/* Make filtered-out slots look empty but still visible */
+.inv-slot.inv-item-hidden.is-filled {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.inv-slot.inv-item-hidden.is-filled::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.3;
+}
+
+@media (max-width: 600px) {
+  .inv-filter-columns {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  /* Mobile fixes for Currently Equipped section */
+  .eq-row {
+    gap: 10px;
+  }
+
+  .char-card {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: min(160px, calc(100% - 20px));
+    min-width: 120px;
+  }
+
+  .eq-row > div:not(.char-card) {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .inv-grid.eq {
+    justify-content: center;
+  }
+
+  .char-presentation {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
