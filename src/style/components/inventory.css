@@ -38,19 +38,180 @@
   opacity: 0.95;
 }
 
-/* Equipped row: character left, eq grid right */
-.eq-row {
-  display: flex;
+/* === New Modular Equipment Panel Structure === */
+
+.eq-panel {
+  padding: var(--panel-pad);
+  border: var(--border);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  
+  /* derived sizes */
+  --eqGridW: calc(var(--slot-size) * 2 + var(--slot-gap) + 12px); /* 2 slots + gap + padding fudge */
+  --eqGridH: calc(var(--slot-size) * 5 + var(--slot-gap) * 4);    /* 5 rows */
+}
+
+.eq-header {
+  margin-bottom: 10px;
+}
+
+.eq-title {
+  font-weight: 800;
+  margin: 0;
+  font-size: 1.05rem;
+  text-align: center;
+  opacity: 0.95;
+}
+
+/* TOP: always side-by-side (2-column on mobile) */
+.eq-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--eqGridW);
   gap: 10px;
-  align-items: flex-start;
-  justify-content: center;
-  flex-wrap: nowrap;
+  align-items: start;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
-/* Character placeholder */
+/* Prevent content from forcing width (iOS Safari fix) */
+.eq-charBox,
+.eq-gridWrap {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Character sprite box height locked to grid height */
+.eq-charBox {
+  height: var(--eqGridH);
+  max-height: var(--eqGridH);
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+  
+  /* FIX: allow page scroll gestures on mobile */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* Sprite container fills the box */
+.eq-charBox .char-display-container {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  min-height: 0;
+  padding: 2px;
+}
+
+/* Keep your eq grid visually same; just lock wrapper height */
+.eq-gridWrap {
+  height: var(--eqGridH);
+  max-height: var(--eqGridH);
+  box-sizing: border-box;
+}
+
+/* Bottom stack order + modules grow downward only */
+.eq-bottom {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+/* Actions row */
+.eq-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.eq-action {
+  min-height: 44px; /* thumb-friendly */
+  touch-action: manipulation;
+}
+
+/* Quote block */
+.eq-quote {
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 12px;
+  min-height: 44px;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.85;
+  font-style: italic;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* State-specific quote colors */
+.eq-quote[data-outfit-state="inappropriate"] {
+  background: rgba(210, 55, 55, 0.15);
+  border-color: rgba(210, 55, 55, 0.35);
+  opacity: 0.9;
+}
+
+.eq-quote[data-outfit-state="embarrassed_both"],
+.eq-quote[data-outfit-state="embarrassed_bra"],
+.eq-quote[data-outfit-state="embarrassed_panties"] {
+  background: rgba(255, 200, 50, 0.15);
+  border-color: rgba(255, 200, 50, 0.35);
+  opacity: 0.88;
+}
+
+.eq-quote[data-outfit-state="comfortable"] {
+  background: rgba(40, 170, 95, 0.12);
+  border-color: rgba(40, 170, 95, 0.3);
+  opacity: 0.85;
+}
+
+.eq-quote[data-outfit-state="needs_underwear"] {
+  background: rgba(255, 165, 0, 0.15);
+  border-color: rgba(255, 165, 0, 0.35);
+  opacity: 0.88;
+}
+
+/* Modules */
+.eq-module {
+  min-width: 0;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+/* Vibes text: wrap but never affect top widths */
+.eq-vibes-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.eq-vibes-tags {
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.85;
+  line-height: 1.4;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere; /* prevents long tokens causing width pressure */
+  word-break: break-word; /* fallback */
+}
+
+/* Legacy support: keep old char-card styles for backwards compatibility */
 .char-card {
   flex: 1 1 50%;
   width: 50%;
@@ -65,10 +226,7 @@
   justify-content: center;
   box-sizing: border-box;
   overflow: hidden;
-
-  /* FIX: allow page scroll gestures on mobile */
   touch-action: pan-y;
-
   user-select: none;
 }
 
@@ -96,12 +254,12 @@
 
 .char-display-container {
   width: 100%;
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  min-height: 0;
+  min-height: 0; /* critical: allows flex child to shrink without forcing layout */
   padding: 2px;
   box-sizing: border-box;
 }
@@ -170,6 +328,12 @@
   width: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
+  height: 56px;
+  flex: 0 0 56px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .char-presentation-label {
@@ -179,9 +343,9 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .char-presentation-score {
@@ -204,6 +368,12 @@
   width: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
+  height: 60px;
+  flex: 0 0 60px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .char-outfit-vibes-label {
@@ -213,19 +383,71 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .char-outfit-vibes-tags {
   font-size: 0.85rem;
   font-weight: 500;
   opacity: 0.85;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-height: 2.8em; /* 2 lines @ line-height 1.4 */
+}
+
+/* === Presentation Bar Module (Meter Component) === */
+.ui-meter {
+  display: grid;
+  gap: 8px;
+}
+
+.ui-meter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.ui-meter-label {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.ui-meter-value {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-meter-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.ui-meter-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateZ(0); /* iOS smoother */
+  transition: width 0.2s ease;
+}
+
+/* Small phone safeguard (keeps 2-column without crushing) */
+@media (max-width: 360px) {
+  .eq-panel {
+    --slot-size: 56px;
+    --slot-gap: 8px;
+  }
 }
 
 /* Grids */
@@ -1189,6 +1411,11 @@ body.inv-dragging {
   }
 
   /* Mobile fixes for Currently Equipped section */
+  .eq-top {
+    gap: 10px;
+  }
+
+  /* Legacy support */
   .eq-row {
     gap: 10px;
   }

@@ -103,14 +103,68 @@
 
   function characterPlaceholderSVG() {
     // Use CharacterDisplay engine if available, otherwise fallback
+    // NOTE: showPresentation is now false - presentation/vibes are separate modules
     if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.render) {
       return Skycore.Systems.CharacterDisplay.render({
-        showPresentation: true
+        showPresentation: false
       });
     }
     // Fallback for backwards compatibility
     return `
       <img src="assets/mc-sprite.webp" alt="Character" role="img" aria-label="Character">
+    `;
+  }
+
+  /**
+   * Renders presentation bar module
+   * @returns {string} HTML for presentation meter
+   */
+  function renderPresentationModule() {
+    let presentationScore = 0;
+    
+    if (Skycore.Systems.PresentationState) {
+      const presentationData = Skycore.Systems.PresentationState.get();
+      presentationScore = Math.max(0, Math.min(100, Math.round(presentationData.presentationScore || 0)));
+    } else if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
+      const result = Skycore.Systems.PresentationEngine.compute();
+      presentationScore = Math.max(0, Math.min(100, Math.round(result.presentationScore || 0)));
+    }
+
+    return `
+      <div class="eq-module eq-module--presentation" data-ui-module="presentation">
+        <div class="ui-meter" data-meter="presentation">
+          <div class="ui-meter-head">
+            <div class="ui-meter-label">Presentation</div>
+            <div class="ui-meter-value"><span class="js-pres-score">${presentationScore}</span>/100</div>
+          </div>
+          <div class="ui-meter-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${presentationScore}">
+            <div class="ui-meter-fill js-pres-fill" style="width:${presentationScore}%"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Renders outfit vibes module
+   * @returns {string} HTML for outfit vibes tags
+   */
+  function renderVibesModule() {
+    let vibesText = "Al naturale";
+    
+    if (Skycore.Systems.PresentationState) {
+      const presentationData = Skycore.Systems.PresentationState.get();
+      vibesText = presentationData.outfitVibesText || "Al naturale";
+    } else if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.getOutfitVibes) {
+      const outfitVibes = Skycore.Systems.CharacterDisplay.getOutfitVibes();
+      vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
+    }
+
+    return `
+      <div class="eq-module eq-module--vibes" data-ui-module="vibes">
+        <div class="eq-vibes-title">OUTFIT VIBE</div>
+        <div class="eq-vibes-tags js-vibes-tags">${vibesText}</div>
+      </div>
     `;
   }
 
@@ -285,40 +339,63 @@
       }
     }
 
+    // Get module flags from config
+    const flags = Skycore.Config?.UI?.InventoryModules || { presentation: true, vibes: true, quote: true };
+
+    // Build bottom modules HTML in correct order
+    let bottomHTML = '';
+
+    // 1) ACTIONS
+    bottomHTML += `
+      <div class="eq-actions">
+        <button class="inv-btn eq-action" data-action="cleanup-eq" type="button">Clean Up</button>
+        <button class="inv-btn eq-action" data-action="unequip-all" type="button">Unequip All</button>
+      </div>
+    `;
+
+    // 2) QUOTE
+    if (flags.quote && outfitComment) {
+      bottomHTML += `
+        <div class="eq-quote" data-outfit-state="${outfitState}" aria-live="polite">
+          ${outfitComment}
+        </div>
+      `;
+    }
+
+    // 3) PRESENTATION (toggle-able module)
+    if (flags.presentation) {
+      bottomHTML += renderPresentationModule();
+    }
+
+    // 4) VIBES (toggle-able module)
+    if (flags.vibes) {
+      bottomHTML += renderVibesModule();
+    }
+
     return `
       <div class="inv-ui" data-inv-root="1">
 
-        <section class="inv-panel">
-          <h3 class="inv-title">Currently Equipped</h3>
+        <section class="eq-panel">
+          <header class="eq-header">
+            <h2 class="eq-title">Currently Equipped</h2>
+          </header>
 
-          <div class="eq-row">
-            <div class="char-card">
+          <!-- TOP: always 2-column on mobile -->
+          <div class="eq-top">
+            <div class="eq-charBox">
               ${characterPlaceholderSVG()}
             </div>
 
-            <div>
+            <div class="eq-gridWrap">
               <div class="inv-grid eq" data-grid="eq">
                 ${eqSlots}
               </div>
             </div>
           </div>
 
-          <div class="inv-actions-centered">
-            <a href="javascript:void(0)" class="inv-link inv-cleanup" data-action="cleanup-eq" role="button">
-              [Clean Up Equipped Items]
-            </a>
-          </div>
-
-          ${outfitComment ? `
-          <div class="inv-character-comment-full" data-outfit-state="${outfitState}">
-            ${outfitComment}
-          </div>
-          ` : ""}
-
-          <div class="inv-actions-centered">
-            <button type="button" class="inv-btn inv-neutral inv-btn-full" data-action="unequip-all">
-              UNEQUIP ALL
-            </button>
+          <!-- BOTTOM: modules, grows downward only -->
+          <div class="eq-bottom">
+            ${bottomHTML}
           </div>
         </section>
 
@@ -424,6 +501,8 @@
     renderWardrobeSlots,
     renderUI,
     matchesFilter,
-    filterAndSortSlots
+    filterAndSortSlots,
+    renderPresentationModule,
+    renderVibesModule
   };
 })();

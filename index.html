@@ -244,7 +244,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-start; /* don't re-center when meta height changes */
   padding: var(--panel-pad, 12px);
   border: var(--border, 1px solid rgba(255, 255, 255, 0.14));
   border-radius: var(--radius, 14px);
@@ -261,12 +261,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 .char-sidebar .char-display-container {
   width: 100%;
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  min-height: 200px;
+  min-height: 0; /* critical: allows flex child to shrink without forcing layout */
   padding: 2px;
   box-sizing: border-box;
   overflow: hidden;
@@ -317,7 +317,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   width: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
-  min-height: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .char-sidebar .char-presentation-label {
@@ -327,9 +332,9 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .char-sidebar .char-presentation-score {
@@ -352,6 +357,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   width: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
+  height: 60px;
+  flex: 0 0 60px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .char-sidebar .char-outfit-vibes-label {
@@ -361,19 +372,22 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .char-sidebar .char-outfit-vibes-tags {
   font-size: 0.85rem;
   font-weight: 500;
   opacity: 0.85;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-height: 2.8em; /* 2 lines @ line-height 1.4 */
 }
 
 /* Character quote/comment styling */
@@ -619,19 +633,180 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   opacity: 0.95;
 }
 
-/* Equipped row: character left, eq grid right */
-.eq-row {
-  display: flex;
+/* === New Modular Equipment Panel Structure === */
+
+.eq-panel {
+  padding: var(--panel-pad);
+  border: var(--border);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  
+  /* derived sizes */
+  --eqGridW: calc(var(--slot-size) * 2 + var(--slot-gap) + 12px); /* 2 slots + gap + padding fudge */
+  --eqGridH: calc(var(--slot-size) * 5 + var(--slot-gap) * 4);    /* 5 rows */
+}
+
+.eq-header {
+  margin-bottom: 10px;
+}
+
+.eq-title {
+  font-weight: 800;
+  margin: 0;
+  font-size: 1.05rem;
+  text-align: center;
+  opacity: 0.95;
+}
+
+/* TOP: always side-by-side (2-column on mobile) */
+.eq-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--eqGridW);
   gap: 10px;
-  align-items: flex-start;
-  justify-content: center;
-  flex-wrap: nowrap;
+  align-items: start;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
 }
 
-/* Character placeholder */
+/* Prevent content from forcing width (iOS Safari fix) */
+.eq-charBox,
+.eq-gridWrap {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Character sprite box height locked to grid height */
+.eq-charBox {
+  height: var(--eqGridH);
+  max-height: var(--eqGridH);
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+  
+  /* FIX: allow page scroll gestures on mobile */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+/* Sprite container fills the box */
+.eq-charBox .char-display-container {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  min-height: 0;
+  padding: 2px;
+}
+
+/* Keep your eq grid visually same; just lock wrapper height */
+.eq-gridWrap {
+  height: var(--eqGridH);
+  max-height: var(--eqGridH);
+  box-sizing: border-box;
+}
+
+/* Bottom stack order + modules grow downward only */
+.eq-bottom {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+/* Actions row */
+.eq-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.eq-action {
+  min-height: 44px; /* thumb-friendly */
+  touch-action: manipulation;
+}
+
+/* Quote block */
+.eq-quote {
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 12px;
+  min-height: 44px;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  opacity: 0.85;
+  font-style: italic;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+/* State-specific quote colors */
+.eq-quote[data-outfit-state="inappropriate"] {
+  background: rgba(210, 55, 55, 0.15);
+  border-color: rgba(210, 55, 55, 0.35);
+  opacity: 0.9;
+}
+
+.eq-quote[data-outfit-state="embarrassed_both"],
+.eq-quote[data-outfit-state="embarrassed_bra"],
+.eq-quote[data-outfit-state="embarrassed_panties"] {
+  background: rgba(255, 200, 50, 0.15);
+  border-color: rgba(255, 200, 50, 0.35);
+  opacity: 0.88;
+}
+
+.eq-quote[data-outfit-state="comfortable"] {
+  background: rgba(40, 170, 95, 0.12);
+  border-color: rgba(40, 170, 95, 0.3);
+  opacity: 0.85;
+}
+
+.eq-quote[data-outfit-state="needs_underwear"] {
+  background: rgba(255, 165, 0, 0.15);
+  border-color: rgba(255, 165, 0, 0.35);
+  opacity: 0.88;
+}
+
+/* Modules */
+.eq-module {
+  min-width: 0;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+/* Vibes text: wrap but never affect top widths */
+.eq-vibes-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.eq-vibes-tags {
+  font-size: 0.85rem;
+  font-weight: 500;
+  opacity: 0.85;
+  line-height: 1.4;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere; /* prevents long tokens causing width pressure */
+  word-break: break-word; /* fallback */
+}
+
+/* Legacy support: keep old char-card styles for backwards compatibility */
 .char-card {
   flex: 1 1 50%;
   width: 50%;
@@ -646,10 +821,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   justify-content: center;
   box-sizing: border-box;
   overflow: hidden;
-
-  /* FIX: allow page scroll gestures on mobile */
   touch-action: pan-y;
-
   user-select: none;
 }
 
@@ -677,12 +849,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 .char-display-container {
   width: 100%;
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  min-height: 0;
+  min-height: 0; /* critical: allows flex child to shrink without forcing layout */
   padding: 2px;
   box-sizing: border-box;
 }
@@ -751,6 +923,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   width: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
+  height: 56px;
+  flex: 0 0 56px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .char-presentation-label {
@@ -760,9 +938,9 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .char-presentation-score {
@@ -785,6 +963,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   width: 100%;
   box-sizing: border-box;
   flex-shrink: 0;
+  height: 60px;
+  flex: 0 0 60px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .char-outfit-vibes-label {
@@ -794,19 +978,71 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .char-outfit-vibes-tags {
   font-size: 0.85rem;
   font-weight: 500;
   opacity: 0.85;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-height: 2.8em; /* 2 lines @ line-height 1.4 */
+}
+
+/* === Presentation Bar Module (Meter Component) === */
+.ui-meter {
+  display: grid;
+  gap: 8px;
+}
+
+.ui-meter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.ui-meter-label {
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.ui-meter-value {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-meter-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+.ui-meter-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateZ(0); /* iOS smoother */
+  transition: width 0.2s ease;
+}
+
+/* Small phone safeguard (keeps 2-column without crushing) */
+@media (max-width: 360px) {
+  .eq-panel {
+    --slot-size: 56px;
+    --slot-gap: 8px;
+  }
 }
 
 /* Grids */
@@ -1770,6 +2006,11 @@ body.inv-dragging {
   }
 
   /* Mobile fixes for Currently Equipped section */
+  .eq-top {
+    gap: 10px;
+  }
+
+  /* Legacy support */
   .eq-row {
     gap: 10px;
   }
@@ -3080,6 +3321,24 @@ body.inv-dragging {
   */
 })();
 /* twine-user-script #3: "engine.js" */
+/* =========================================================================
+   UI Configuration: Modular UI toggles
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Config = Skycore.Config || {};
+  Skycore.Config.UI = Skycore.Config.UI || {};
+
+  // Toggle modules without touching render code everywhere
+  Skycore.Config.UI.InventoryModules = {
+    presentation: true, // can be disabled after dev
+    vibes: true,
+    quote: true
+  };
+})();
 /* twine-user-script #4: "init.js" */
 /* During Development: Prevent SugarCube from loading old saves on refresh */
 Config.saves.autoload = false; 
@@ -3769,14 +4028,68 @@ $(document).on(':storyinit', function () {
 
   function characterPlaceholderSVG() {
     // Use CharacterDisplay engine if available, otherwise fallback
+    // NOTE: showPresentation is now false - presentation/vibes are separate modules
     if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.render) {
       return Skycore.Systems.CharacterDisplay.render({
-        showPresentation: true
+        showPresentation: false
       });
     }
     // Fallback for backwards compatibility
     return `
       <img src="assets/mc-sprite.webp" alt="Character" role="img" aria-label="Character">
+    `;
+  }
+
+  /**
+   * Renders presentation bar module
+   * @returns {string} HTML for presentation meter
+   */
+  function renderPresentationModule() {
+    let presentationScore = 0;
+    
+    if (Skycore.Systems.PresentationState) {
+      const presentationData = Skycore.Systems.PresentationState.get();
+      presentationScore = Math.max(0, Math.min(100, Math.round(presentationData.presentationScore || 0)));
+    } else if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
+      const result = Skycore.Systems.PresentationEngine.compute();
+      presentationScore = Math.max(0, Math.min(100, Math.round(result.presentationScore || 0)));
+    }
+
+    return `
+      <div class="eq-module eq-module--presentation" data-ui-module="presentation">
+        <div class="ui-meter" data-meter="presentation">
+          <div class="ui-meter-head">
+            <div class="ui-meter-label">Presentation</div>
+            <div class="ui-meter-value"><span class="js-pres-score">${presentationScore}</span>/100</div>
+          </div>
+          <div class="ui-meter-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${presentationScore}">
+            <div class="ui-meter-fill js-pres-fill" style="width:${presentationScore}%"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Renders outfit vibes module
+   * @returns {string} HTML for outfit vibes tags
+   */
+  function renderVibesModule() {
+    let vibesText = "Al naturale";
+    
+    if (Skycore.Systems.PresentationState) {
+      const presentationData = Skycore.Systems.PresentationState.get();
+      vibesText = presentationData.outfitVibesText || "Al naturale";
+    } else if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.getOutfitVibes) {
+      const outfitVibes = Skycore.Systems.CharacterDisplay.getOutfitVibes();
+      vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
+    }
+
+    return `
+      <div class="eq-module eq-module--vibes" data-ui-module="vibes">
+        <div class="eq-vibes-title">OUTFIT VIBE</div>
+        <div class="eq-vibes-tags js-vibes-tags">${vibesText}</div>
+      </div>
     `;
   }
 
@@ -3951,40 +4264,63 @@ $(document).on(':storyinit', function () {
       }
     }
 
+    // Get module flags from config
+    const flags = Skycore.Config?.UI?.InventoryModules || { presentation: true, vibes: true, quote: true };
+
+    // Build bottom modules HTML in correct order
+    let bottomHTML = '';
+
+    // 1) ACTIONS
+    bottomHTML += `
+      <div class="eq-actions">
+        <button class="inv-btn eq-action" data-action="cleanup-eq" type="button">Clean Up</button>
+        <button class="inv-btn eq-action" data-action="unequip-all" type="button">Unequip All</button>
+      </div>
+    `;
+
+    // 2) QUOTE
+    if (flags.quote && outfitComment) {
+      bottomHTML += `
+        <div class="eq-quote" data-outfit-state="${outfitState}" aria-live="polite">
+          ${outfitComment}
+        </div>
+      `;
+    }
+
+    // 3) PRESENTATION (toggle-able module)
+    if (flags.presentation) {
+      bottomHTML += renderPresentationModule();
+    }
+
+    // 4) VIBES (toggle-able module)
+    if (flags.vibes) {
+      bottomHTML += renderVibesModule();
+    }
+
     return `
       <div class="inv-ui" data-inv-root="1">
 
-        <section class="inv-panel">
-          <h3 class="inv-title">Currently Equipped</h3>
+        <section class="eq-panel">
+          <header class="eq-header">
+            <h2 class="eq-title">Currently Equipped</h2>
+          </header>
 
-          <div class="eq-row">
-            <div class="char-card">
+          <!-- TOP: always 2-column on mobile -->
+          <div class="eq-top">
+            <div class="eq-charBox">
               ${characterPlaceholderSVG()}
             </div>
 
-            <div>
+            <div class="eq-gridWrap">
               <div class="inv-grid eq" data-grid="eq">
                 ${eqSlots}
               </div>
             </div>
           </div>
 
-          <div class="inv-actions-centered">
-            <a href="javascript:void(0)" class="inv-link inv-cleanup" data-action="cleanup-eq" role="button">
-              [Clean Up Equipped Items]
-            </a>
-          </div>
-
-          ${outfitComment ? `
-          <div class="inv-character-comment-full" data-outfit-state="${outfitState}">
-            ${outfitComment}
-          </div>
-          ` : ""}
-
-          <div class="inv-actions-centered">
-            <button type="button" class="inv-btn inv-neutral inv-btn-full" data-action="unequip-all">
-              UNEQUIP ALL
-            </button>
+          <!-- BOTTOM: modules, grows downward only -->
+          <div class="eq-bottom">
+            ${bottomHTML}
           </div>
         </section>
 
@@ -4090,7 +4426,9 @@ $(document).on(':storyinit', function () {
     renderWardrobeSlots,
     renderUI,
     matchesFilter,
-    filterAndSortSlots
+    filterAndSortSlots,
+    renderPresentationModule,
+    renderVibesModule
   };
 })();
 /* twine-user-script #11: "07-inventory-dom.js" */
@@ -4157,6 +4495,7 @@ $(document).on(':storyinit', function () {
       }
       
       updatePresentationScore(root);
+      updateOutfitVibes(root);
       updateCharacterDisplay(root);
       updateCharacterComment(root);
       
@@ -4183,6 +4522,7 @@ $(document).on(':storyinit', function () {
       }
       
       updatePresentationScore(root);
+      updateOutfitVibes(root);
       updateCharacterDisplay(root);
       updateCharacterComment(root);
       
@@ -4276,25 +4616,65 @@ $(document).on(':storyinit', function () {
    * Update presentation score display in inventory UI
    * Called whenever equipment changes
    * Uses PresentationState as single source of truth
+   * Now updates the new modular presentation bar
    */
   function updatePresentationScore(root) {
-    const presentationEl = root.querySelector(".char-presentation-score");
-    if (!presentationEl) return;
+    // Update new modular presentation bar
+    const scoreEl = root.querySelector(".js-pres-score");
+    const fillEl = root.querySelector(".js-pres-fill");
+    const trackEl = root.querySelector(".ui-meter-track[data-meter='presentation']");
 
-    const data = Skycore.Systems.PresentationState?.get?.();
-    const presentationScore = data ? Math.round(data.presentationScore || 0) : 0;
-    presentationEl.textContent = presentationScore;
+    if (scoreEl || fillEl) {
+      const data = Skycore.Systems.PresentationState?.get?.();
+      const presentationScore = data 
+        ? Math.max(0, Math.min(100, Math.round(data.presentationScore || 0)))
+        : 0;
+
+      if (scoreEl) scoreEl.textContent = String(presentationScore);
+      if (fillEl) fillEl.style.width = presentationScore + "%";
+      if (trackEl) trackEl.setAttribute("aria-valuenow", String(presentationScore));
+    }
+
+    // Legacy support: update old presentation score display if it exists
+    const presentationEl = root.querySelector(".char-presentation-score");
+    if (presentationEl) {
+      const data = Skycore.Systems.PresentationState?.get?.();
+      const presentationScore = data ? Math.round(data.presentationScore || 0) : 0;
+      presentationEl.textContent = presentationScore;
+    }
+  }
+
+  /**
+   * Update outfit vibes display in inventory UI
+   * Called whenever equipment changes
+   */
+  function updateOutfitVibes(root) {
+    const vibesEl = root.querySelector(".js-vibes-tags");
+    if (!vibesEl) return;
+
+    let vibesText = "Al naturale";
+    
+    if (Skycore.Systems.PresentationState) {
+      const presentationData = Skycore.Systems.PresentationState.get();
+      vibesText = presentationData.outfitVibesText || "Al naturale";
+    } else if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.getOutfitVibes) {
+      const outfitVibes = Skycore.Systems.CharacterDisplay.getOutfitVibes();
+      vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
+    }
+
+    vibesEl.textContent = vibesText;
   }
 
   /**
    * Update character outfit comment display in inventory UI
    * Called whenever equipment changes
+   * Now updates the new modular quote block
    */
   function updateCharacterComment(root) {
-    const commentEl = root.querySelector(".inv-character-comment");
     if (!Skycore.Systems.PresentationEngine || !Skycore.Systems.PresentationEngine.getOutfitComment) {
-      // Hide comment if system not available
-      if (commentEl) commentEl.remove();
+      // Hide quote if system not available
+      const quoteEl = root.querySelector(".eq-quote");
+      if (quoteEl) quoteEl.remove();
       return;
     }
 
@@ -4310,45 +4690,51 @@ $(document).on(':storyinit', function () {
       console.error("Error getting outfit comment:", e);
     }
 
+    // Check if quote module is enabled
+    const flags = Skycore.Config?.UI?.InventoryModules || { quote: true };
+    if (!flags.quote) {
+      const quoteEl = root.querySelector(".eq-quote");
+      if (quoteEl) quoteEl.remove();
+      return;
+    }
+
     if (outfitComment) {
-      // Check for both old (inside eq-row) and new (full-width) comment locations
-      let fullWidthCommentEl = root.querySelector(".inv-character-comment-full");
+      // Update or create new modular quote block
+      let quoteEl = root.querySelector(".eq-quote");
       
-      // Update or create full-width comment (new location)
-      if (fullWidthCommentEl) {
-        fullWidthCommentEl.textContent = outfitComment;
-        fullWidthCommentEl.setAttribute("data-outfit-state", outfitState);
+      if (quoteEl) {
+        quoteEl.textContent = outfitComment;
+        quoteEl.setAttribute("data-outfit-state", outfitState);
       } else {
-        // Remove old comment if it exists
-        if (commentEl) commentEl.remove();
-        
-        // Create new full-width comment element
-        const invPanel = root.querySelector(".inv-panel");
-        if (invPanel) {
-          const eqRow = invPanel.querySelector(".eq-row");
-          const newCommentEl = document.createElement("div");
-          newCommentEl.className = "inv-character-comment-full";
-          newCommentEl.setAttribute("data-outfit-state", outfitState);
-          newCommentEl.textContent = outfitComment;
-          // Insert after eq-row, before actions-centered
-          if (eqRow) {
-            eqRow.insertAdjacentElement("afterend", newCommentEl);
+        // Create new quote element in correct position (after actions, before presentation)
+        const eqBottom = root.querySelector(".eq-bottom");
+        if (eqBottom) {
+          const actionsEl = eqBottom.querySelector(".eq-actions");
+          quoteEl = document.createElement("div");
+          quoteEl.className = "eq-quote";
+          quoteEl.setAttribute("data-outfit-state", outfitState);
+          quoteEl.setAttribute("aria-live", "polite");
+          quoteEl.textContent = outfitComment;
+          
+          // Insert after actions, before modules
+          if (actionsEl) {
+            actionsEl.insertAdjacentElement("afterend", quoteEl);
           } else {
-            invPanel.appendChild(newCommentEl);
+            eqBottom.insertBefore(quoteEl, eqBottom.firstChild);
           }
         }
       }
-      
-      // Also remove old comment if it still exists (migration)
-      if (commentEl && !fullWidthCommentEl) {
-        commentEl.remove();
-      }
     } else {
-      // Remove both old and new comments if no comment to show
-      if (commentEl) commentEl.remove();
-      const fullWidthCommentEl = root.querySelector(".inv-character-comment-full");
-      if (fullWidthCommentEl) fullWidthCommentEl.remove();
+      // Remove quote if no comment to show
+      const quoteEl = root.querySelector(".eq-quote");
+      if (quoteEl) quoteEl.remove();
     }
+
+    // Legacy support: remove old comment elements if they exist
+    const oldCommentEl = root.querySelector(".inv-character-comment");
+    if (oldCommentEl) oldCommentEl.remove();
+    const oldFullCommentEl = root.querySelector(".inv-character-comment-full");
+    if (oldFullCommentEl) oldFullCommentEl.remove();
   }
 
   /**
@@ -4361,9 +4747,10 @@ $(document).on(':storyinit', function () {
     }
 
     // Try multiple ways to find the character display element
-    let charDisplayEl = root.querySelector(".char-display");
+    // New structure: look in eq-charBox first
+    let charDisplayEl = root.querySelector(".eq-charBox .char-display");
     
-    // Fallback 1: search from char-card
+    // Fallback 1: search from char-card (legacy)
     if (!charDisplayEl) {
       const charCard = root.querySelector(".char-card");
       if (charCard) {
@@ -4371,11 +4758,16 @@ $(document).on(':storyinit', function () {
       }
     }
     
-    // Fallback 2: if still not found, try to find the img directly and update it
+    // Fallback 2: direct search
     if (!charDisplayEl) {
-      const charCard = root.querySelector(".char-card");
-      if (charCard) {
-        const spriteImg = charCard.querySelector("img");
+      charDisplayEl = root.querySelector(".char-display");
+    }
+    
+    // Fallback 3: if still not found, try to find the img directly and update it
+    if (!charDisplayEl) {
+      const charBox = root.querySelector(".eq-charBox") || root.querySelector(".char-card");
+      if (charBox) {
+        const spriteImg = charBox.querySelector("img");
         if (spriteImg) {
           // Update the sprite directly if we can't find the wrapper
           const eq = State.variables.invSys?.eq || [];
@@ -4391,7 +4783,7 @@ $(document).on(':storyinit', function () {
     
     if (charDisplayEl) {
       Skycore.Systems.CharacterDisplay.update(charDisplayEl, {
-        showPresentation: true
+        showPresentation: false // Presentation/vibes are now separate modules
       });
     }
   }
@@ -4403,6 +4795,7 @@ $(document).on(':storyinit', function () {
     rerenderWardrobeGrid,
     clearDropTargets,
     updatePresentationScore,
+    updateOutfitVibes,
     updateCharacterDisplay,
     updateCharacterComment
   };
@@ -6532,18 +6925,19 @@ $(document).on(':storyinit', function () {
 
       const dx = ev.clientX - drag.startX;
       const dy = ev.clientY - drag.startY;
-      const dist = Math.hypot(dx, dy);
+      const dist2 = dx * dx + dy * dy;
 
       // Use different threshold for mouse vs touch
       const isMouse = drag.pointerType === "mouse";
       const threshold = isMouse ? 3 : CFG.dragStartThresholdPx;
+      const threshold2 = threshold * threshold;
 
       // For touch devices: prevent scroll if we've captured the pointer
       if (!drag.started && drag.captured) {
         ev.preventDefault();
       }
 
-      if (!drag.started && dist >= threshold) {
+      if (!drag.started && dist2 >= threshold2) {
         const slot = root.querySelector(`.inv-slot[data-area="${drag.fromArea}"][data-index="${drag.fromIndex}"]`);
         if (slot) startDragging(slot, ev);
       }
@@ -8267,38 +8661,9 @@ $(document).on(':storyinit', function () {
       className
     ].filter(Boolean).join(" ");
 
-    // Compute presentation score if needed - use PresentationState as single source of truth
+    // NOTE: Presentation and vibes are now separate modules rendered outside CharacterDisplay
+    // showPresentation flag is kept for backwards compatibility but does nothing
     let presentationHTML = "";
-    if (showPresentation) {
-      let presentationScore = 0;
-      let vibesText = "Al naturale";
-      
-      // Use PresentationState if available, otherwise fallback to direct computation
-      if (Skycore.Systems.PresentationState) {
-        const presentationData = Skycore.Systems.PresentationState.get();
-        presentationScore = presentationData.presentationScore || 0;
-        vibesText = presentationData.outfitVibesText || "Al naturale";
-      } else {
-        // Fallback to direct computation
-        if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
-          const result = Skycore.Systems.PresentationEngine.compute({}, eq);
-          presentationScore = Math.round(result.presentationScore || 0);
-        }
-        const outfitVibes = getOutfitVibes(eq);
-        vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
-      }
-      
-      presentationHTML = `
-        <div class="char-presentation">
-          <div class="char-presentation-label">Presentation</div>
-          <div class="char-presentation-score">${presentationScore}</div>
-        </div>
-        <div class="char-outfit-vibes">
-          <div class="char-outfit-vibes-label">Outfit Vibe</div>
-          <div class="char-outfit-vibes-tags">${vibesText}</div>
-        </div>
-      `;
-    }
 
     // Get equipped item sprites
     const equippedSprites = getEquippedSprites(eq);
@@ -8475,51 +8840,12 @@ $(document).on(':storyinit', function () {
       el.className = el.className.trim();
     }
 
-    // Update presentation score if needed - use PresentationState as single source of truth
-    if (options.showPresentation !== false) {
-      let presentationScore = 0;
-      let vibesText = "Al naturale";
-      
-      // Use PresentationState if available, otherwise fallback to direct computation
-      if (Skycore.Systems.PresentationState) {
-        const presentationData = Skycore.Systems.PresentationState.get();
-        presentationScore = presentationData.presentationScore || 0;
-        vibesText = presentationData.outfitVibesText || "Al naturale";
-      } else {
-        // Fallback to direct computation
-        if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
-          const result = Skycore.Systems.PresentationEngine.compute({}, eq);
-          presentationScore = Math.round(result.presentationScore || 0);
-        }
-        const outfitVibes = getOutfitVibes(eq);
-        vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
-      }
-
-      let presentationEl = el.querySelector(".char-presentation");
-      if (!presentationEl) {
-        presentationEl = document.createElement("div");
-        presentationEl.className = "char-presentation";
-        el.appendChild(presentationEl);
-      }
-
-      presentationEl.innerHTML = `
-        <div class="char-presentation-label">Presentation</div>
-        <div class="char-presentation-score">${presentationScore}</div>
-      `;
-
-      // Update or create outfit vibes section
-      let vibesEl = el.querySelector(".char-outfit-vibes");
-      if (!vibesEl) {
-        vibesEl = document.createElement("div");
-        vibesEl.className = "char-outfit-vibes";
-        // Insert after presentation element
-        presentationEl.insertAdjacentElement("afterend", vibesEl);
-      }
-      vibesEl.innerHTML = `
-        <div class="char-outfit-vibes-label">Outfit Vibe</div>
-        <div class="char-outfit-vibes-tags">${vibesText}</div>
-      `;
-    }
+    // NOTE: Presentation and vibes are now separate modules rendered outside CharacterDisplay
+    // Remove any existing presentation/vibes elements if they exist (migration cleanup)
+    const presentationEl = el.querySelector(".char-presentation");
+    if (presentationEl) presentationEl.remove();
+    const vibesEl = el.querySelector(".char-outfit-vibes");
+    if (vibesEl) vibesEl.remove();
   }
 
   /**

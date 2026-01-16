@@ -718,18 +718,19 @@
 
       const dx = ev.clientX - drag.startX;
       const dy = ev.clientY - drag.startY;
-      const dist = Math.hypot(dx, dy);
+      const dist2 = dx * dx + dy * dy;
 
       // Use different threshold for mouse vs touch
       const isMouse = drag.pointerType === "mouse";
       const threshold = isMouse ? 3 : CFG.dragStartThresholdPx;
+      const threshold2 = threshold * threshold;
 
       // For touch devices: prevent scroll if we've captured the pointer
       if (!drag.started && drag.captured) {
         ev.preventDefault();
       }
 
-      if (!drag.started && dist >= threshold) {
+      if (!drag.started && dist2 >= threshold2) {
         const slot = root.querySelector(`.inv-slot[data-area="${drag.fromArea}"][data-index="${drag.fromIndex}"]`);
         if (slot) startDragging(slot, ev);
       }

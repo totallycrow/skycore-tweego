@@ -61,6 +61,7 @@
       }
       
       updatePresentationScore(root);
+      updateOutfitVibes(root);
       updateCharacterDisplay(root);
       updateCharacterComment(root);
       
@@ -87,6 +88,7 @@
       }
       
       updatePresentationScore(root);
+      updateOutfitVibes(root);
       updateCharacterDisplay(root);
       updateCharacterComment(root);
       
@@ -180,25 +182,65 @@
    * Update presentation score display in inventory UI
    * Called whenever equipment changes
    * Uses PresentationState as single source of truth
+   * Now updates the new modular presentation bar
    */
   function updatePresentationScore(root) {
-    const presentationEl = root.querySelector(".char-presentation-score");
-    if (!presentationEl) return;
+    // Update new modular presentation bar
+    const scoreEl = root.querySelector(".js-pres-score");
+    const fillEl = root.querySelector(".js-pres-fill");
+    const trackEl = root.querySelector(".ui-meter-track[data-meter='presentation']");
 
-    const data = Skycore.Systems.PresentationState?.get?.();
-    const presentationScore = data ? Math.round(data.presentationScore || 0) : 0;
-    presentationEl.textContent = presentationScore;
+    if (scoreEl || fillEl) {
+      const data = Skycore.Systems.PresentationState?.get?.();
+      const presentationScore = data 
+        ? Math.max(0, Math.min(100, Math.round(data.presentationScore || 0)))
+        : 0;
+
+      if (scoreEl) scoreEl.textContent = String(presentationScore);
+      if (fillEl) fillEl.style.width = presentationScore + "%";
+      if (trackEl) trackEl.setAttribute("aria-valuenow", String(presentationScore));
+    }
+
+    // Legacy support: update old presentation score display if it exists
+    const presentationEl = root.querySelector(".char-presentation-score");
+    if (presentationEl) {
+      const data = Skycore.Systems.PresentationState?.get?.();
+      const presentationScore = data ? Math.round(data.presentationScore || 0) : 0;
+      presentationEl.textContent = presentationScore;
+    }
+  }
+
+  /**
+   * Update outfit vibes display in inventory UI
+   * Called whenever equipment changes
+   */
+  function updateOutfitVibes(root) {
+    const vibesEl = root.querySelector(".js-vibes-tags");
+    if (!vibesEl) return;
+
+    let vibesText = "Al naturale";
+    
+    if (Skycore.Systems.PresentationState) {
+      const presentationData = Skycore.Systems.PresentationState.get();
+      vibesText = presentationData.outfitVibesText || "Al naturale";
+    } else if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.getOutfitVibes) {
+      const outfitVibes = Skycore.Systems.CharacterDisplay.getOutfitVibes();
+      vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
+    }
+
+    vibesEl.textContent = vibesText;
   }
 
   /**
    * Update character outfit comment display in inventory UI
    * Called whenever equipment changes
+   * Now updates the new modular quote block
    */
   function updateCharacterComment(root) {
-    const commentEl = root.querySelector(".inv-character-comment");
     if (!Skycore.Systems.PresentationEngine || !Skycore.Systems.PresentationEngine.getOutfitComment) {
-      // Hide comment if system not available
-      if (commentEl) commentEl.remove();
+      // Hide quote if system not available
+      const quoteEl = root.querySelector(".eq-quote");
+      if (quoteEl) quoteEl.remove();
       return;
     }
 
@@ -214,45 +256,51 @@
       console.error("Error getting outfit comment:", e);
     }
 
+    // Check if quote module is enabled
+    const flags = Skycore.Config?.UI?.InventoryModules || { quote: true };
+    if (!flags.quote) {
+      const quoteEl = root.querySelector(".eq-quote");
+      if (quoteEl) quoteEl.remove();
+      return;
+    }
+
     if (outfitComment) {
-      // Check for both old (inside eq-row) and new (full-width) comment locations
-      let fullWidthCommentEl = root.querySelector(".inv-character-comment-full");
+      // Update or create new modular quote block
+      let quoteEl = root.querySelector(".eq-quote");
       
-      // Update or create full-width comment (new location)
-      if (fullWidthCommentEl) {
-        fullWidthCommentEl.textContent = outfitComment;
-        fullWidthCommentEl.setAttribute("data-outfit-state", outfitState);
+      if (quoteEl) {
+        quoteEl.textContent = outfitComment;
+        quoteEl.setAttribute("data-outfit-state", outfitState);
       } else {
-        // Remove old comment if it exists
-        if (commentEl) commentEl.remove();
-        
-        // Create new full-width comment element
-        const invPanel = root.querySelector(".inv-panel");
-        if (invPanel) {
-          const eqRow = invPanel.querySelector(".eq-row");
-          const newCommentEl = document.createElement("div");
-          newCommentEl.className = "inv-character-comment-full";
-          newCommentEl.setAttribute("data-outfit-state", outfitState);
-          newCommentEl.textContent = outfitComment;
-          // Insert after eq-row, before actions-centered
-          if (eqRow) {
-            eqRow.insertAdjacentElement("afterend", newCommentEl);
+        // Create new quote element in correct position (after actions, before presentation)
+        const eqBottom = root.querySelector(".eq-bottom");
+        if (eqBottom) {
+          const actionsEl = eqBottom.querySelector(".eq-actions");
+          quoteEl = document.createElement("div");
+          quoteEl.className = "eq-quote";
+          quoteEl.setAttribute("data-outfit-state", outfitState);
+          quoteEl.setAttribute("aria-live", "polite");
+          quoteEl.textContent = outfitComment;
+          
+          // Insert after actions, before modules
+          if (actionsEl) {
+            actionsEl.insertAdjacentElement("afterend", quoteEl);
           } else {
-            invPanel.appendChild(newCommentEl);
+            eqBottom.insertBefore(quoteEl, eqBottom.firstChild);
           }
         }
       }
-      
-      // Also remove old comment if it still exists (migration)
-      if (commentEl && !fullWidthCommentEl) {
-        commentEl.remove();
-      }
     } else {
-      // Remove both old and new comments if no comment to show
-      if (commentEl) commentEl.remove();
-      const fullWidthCommentEl = root.querySelector(".inv-character-comment-full");
-      if (fullWidthCommentEl) fullWidthCommentEl.remove();
+      // Remove quote if no comment to show
+      const quoteEl = root.querySelector(".eq-quote");
+      if (quoteEl) quoteEl.remove();
     }
+
+    // Legacy support: remove old comment elements if they exist
+    const oldCommentEl = root.querySelector(".inv-character-comment");
+    if (oldCommentEl) oldCommentEl.remove();
+    const oldFullCommentEl = root.querySelector(".inv-character-comment-full");
+    if (oldFullCommentEl) oldFullCommentEl.remove();
   }
 
   /**
@@ -265,9 +313,10 @@
     }
 
     // Try multiple ways to find the character display element
-    let charDisplayEl = root.querySelector(".char-display");
+    // New structure: look in eq-charBox first
+    let charDisplayEl = root.querySelector(".eq-charBox .char-display");
     
-    // Fallback 1: search from char-card
+    // Fallback 1: search from char-card (legacy)
     if (!charDisplayEl) {
       const charCard = root.querySelector(".char-card");
       if (charCard) {
@@ -275,11 +324,16 @@
       }
     }
     
-    // Fallback 2: if still not found, try to find the img directly and update it
+    // Fallback 2: direct search
     if (!charDisplayEl) {
-      const charCard = root.querySelector(".char-card");
-      if (charCard) {
-        const spriteImg = charCard.querySelector("img");
+      charDisplayEl = root.querySelector(".char-display");
+    }
+    
+    // Fallback 3: if still not found, try to find the img directly and update it
+    if (!charDisplayEl) {
+      const charBox = root.querySelector(".eq-charBox") || root.querySelector(".char-card");
+      if (charBox) {
+        const spriteImg = charBox.querySelector("img");
         if (spriteImg) {
           // Update the sprite directly if we can't find the wrapper
           const eq = State.variables.invSys?.eq || [];
@@ -295,7 +349,7 @@
     
     if (charDisplayEl) {
       Skycore.Systems.CharacterDisplay.update(charDisplayEl, {
-        showPresentation: true
+        showPresentation: false // Presentation/vibes are now separate modules
       });
     }
   }
@@ -307,6 +361,7 @@
     rerenderWardrobeGrid,
     clearDropTargets,
     updatePresentationScore,
+    updateOutfitVibes,
     updateCharacterDisplay,
     updateCharacterComment
   };

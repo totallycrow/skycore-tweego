@@ -227,38 +227,9 @@
       className
     ].filter(Boolean).join(" ");
 
-    // Compute presentation score if needed - use PresentationState as single source of truth
+    // NOTE: Presentation and vibes are now separate modules rendered outside CharacterDisplay
+    // showPresentation flag is kept for backwards compatibility but does nothing
     let presentationHTML = "";
-    if (showPresentation) {
-      let presentationScore = 0;
-      let vibesText = "Al naturale";
-      
-      // Use PresentationState if available, otherwise fallback to direct computation
-      if (Skycore.Systems.PresentationState) {
-        const presentationData = Skycore.Systems.PresentationState.get();
-        presentationScore = presentationData.presentationScore || 0;
-        vibesText = presentationData.outfitVibesText || "Al naturale";
-      } else {
-        // Fallback to direct computation
-        if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
-          const result = Skycore.Systems.PresentationEngine.compute({}, eq);
-          presentationScore = Math.round(result.presentationScore || 0);
-        }
-        const outfitVibes = getOutfitVibes(eq);
-        vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
-      }
-      
-      presentationHTML = `
-        <div class="char-presentation">
-          <div class="char-presentation-label">Presentation</div>
-          <div class="char-presentation-score">${presentationScore}</div>
-        </div>
-        <div class="char-outfit-vibes">
-          <div class="char-outfit-vibes-label">Outfit Vibe</div>
-          <div class="char-outfit-vibes-tags">${vibesText}</div>
-        </div>
-      `;
-    }
 
     // Get equipped item sprites
     const equippedSprites = getEquippedSprites(eq);
@@ -435,51 +406,12 @@
       el.className = el.className.trim();
     }
 
-    // Update presentation score if needed - use PresentationState as single source of truth
-    if (options.showPresentation !== false) {
-      let presentationScore = 0;
-      let vibesText = "Al naturale";
-      
-      // Use PresentationState if available, otherwise fallback to direct computation
-      if (Skycore.Systems.PresentationState) {
-        const presentationData = Skycore.Systems.PresentationState.get();
-        presentationScore = presentationData.presentationScore || 0;
-        vibesText = presentationData.outfitVibesText || "Al naturale";
-      } else {
-        // Fallback to direct computation
-        if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
-          const result = Skycore.Systems.PresentationEngine.compute({}, eq);
-          presentationScore = Math.round(result.presentationScore || 0);
-        }
-        const outfitVibes = getOutfitVibes(eq);
-        vibesText = outfitVibes.length > 0 ? outfitVibes.join(", ") : "Al naturale";
-      }
-
-      let presentationEl = el.querySelector(".char-presentation");
-      if (!presentationEl) {
-        presentationEl = document.createElement("div");
-        presentationEl.className = "char-presentation";
-        el.appendChild(presentationEl);
-      }
-
-      presentationEl.innerHTML = `
-        <div class="char-presentation-label">Presentation</div>
-        <div class="char-presentation-score">${presentationScore}</div>
-      `;
-
-      // Update or create outfit vibes section
-      let vibesEl = el.querySelector(".char-outfit-vibes");
-      if (!vibesEl) {
-        vibesEl = document.createElement("div");
-        vibesEl.className = "char-outfit-vibes";
-        // Insert after presentation element
-        presentationEl.insertAdjacentElement("afterend", vibesEl);
-      }
-      vibesEl.innerHTML = `
-        <div class="char-outfit-vibes-label">Outfit Vibe</div>
-        <div class="char-outfit-vibes-tags">${vibesText}</div>
-      `;
-    }
+    // NOTE: Presentation and vibes are now separate modules rendered outside CharacterDisplay
+    // Remove any existing presentation/vibes elements if they exist (migration cleanup)
+    const presentationEl = el.querySelector(".char-presentation");
+    if (presentationEl) presentationEl.remove();
+    const vibesEl = el.querySelector(".char-outfit-vibes");
+    if (vibesEl) vibesEl.remove();
   }
 
   /**
