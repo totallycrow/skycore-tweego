@@ -899,17 +899,24 @@ body.inv-dragging {
   background: rgba(255, 255, 255, 0.04);
   border-radius: 8px;
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .inv-set-item-icon {
   font-size: 1.2em;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .inv-set-item-name {
   font-size: 0.95rem;
   opacity: 0.9;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inv-set-item-remove {
@@ -956,6 +963,8 @@ body.inv-dragging {
   color: inherit;
   font-size: 0.95rem;
   font-family: inherit;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .inv-set-name-input:focus {
@@ -1158,11 +1167,32 @@ body.inv-dragging {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Ensure all modal inputs, textareas, and selects use border-box */
+.inv-modal input,
+.inv-modal textarea,
+.inv-modal select {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Safety net: prevent horizontal scroll inside modals */
+.inv-modal,
+.inv-modal * {
+  box-sizing: border-box;
+}
+
+.inv-modal-content,
+.inv-modal-body {
+  overflow-x: hidden;
 }
 
 .inv-modal-body {
   padding: 12px 14px;
   overflow: hidden;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1171,6 +1201,7 @@ body.inv-dragging {
 
 .inv-modal-scroll {
   overflow: auto;
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   padding-right: 6px;
   flex: 1;

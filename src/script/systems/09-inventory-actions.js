@@ -175,8 +175,34 @@
       (Array.isArray(filter.type) && filter.type.length > 0) ||
       (Array.isArray(filter.slot) && filter.slot.length > 0)
     );
-    let movedAny = false;
+    
+    let attempted = 0;
+    let moved = 0;
 
+    // First pass: count items we'll attempt to move
+    for (let i = 0; i < wardrobe.length; i++) {
+      if (wardrobe[i]) {
+        // If filter is active, only count items that match the filter
+        if (hasFilter && !matchesFilter(wardrobe[i], filter)) {
+          continue;
+        }
+        attempted++;
+      }
+    }
+
+    // If wardrobe is empty (or no items match filter), show message
+    if (attempted === 0) {
+      const message = hasFilter 
+        ? "No items in wardrobe match your current filter."
+        : "Your wardrobe is empty.";
+      Skycore.Systems.InventoryModals.AlertModal.open({
+        title: "Wardrobe is empty",
+        message: message
+      });
+      return;
+    }
+
+    // Second pass: actually move items
     for (let i = 0; i < wardrobe.length; i++) {
       if (wardrobe[i]) {
         // If filter is active, only move items that match the filter
@@ -187,15 +213,48 @@
         if (emptyIdx === -1) break; // Inventory full, stop
         inv[emptyIdx] = wardrobe[i];
         wardrobe[i] = null;
-        movedAny = true;
+        moved++;
       }
     }
 
-    if (movedAny) {
+    const remaining = attempted - moved;
+
+    // Update UI if we moved anything
+    if (moved > 0) {
       compactWardrobe();
       updateAllSlots(root, "inv");
       rerenderWardrobeGrid(root);
     }
+
+    // Show modals based on results
+    if (attempted > 0 && moved === 0) {
+      // Inventory full, nothing moved
+      let message = "You don't have any empty inventory slots. Move items to wardrobe or equip them to free space.";
+      if (hasFilter) {
+        message += "\n\nTip: Some items may be hidden by your active filter.";
+      }
+      Skycore.Systems.InventoryModals.AlertModal.open({
+        title: "Inventory is full",
+        message: message
+      });
+      return;
+    }
+
+    if (remaining > 0) {
+      // Partial transfer - some items moved, some couldn't
+      let message = `Moved ${moved} item${moved === 1 ? "" : "s"} to inventory.\n\n${remaining} item${remaining === 1 ? "" : "s"} could not be moved because your inventory ran out of space.`;
+      if (hasFilter) {
+        message += "\n\nTip: Some items may be hidden by your active filter.";
+      }
+      Skycore.Systems.InventoryModals.AlertModal.open({
+        title: "Inventory is full",
+        message: message
+      });
+      return;
+    }
+
+    // Success case: all items moved (no modal needed, just silent success)
+    // Optional: could add a toast here if you have a toast system
   }
 
   // ---- Sets Management -----------------------------------------------------
