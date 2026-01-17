@@ -139,6 +139,17 @@
   outline-offset: 2px;
 }
 
+/* LEAVE HOUSE button - dark yellow */
+.room-link[data-room-label="LEAVE%20HOUSE"] {
+  background: rgba(184, 134, 11, 0.22); /* dark yellow */
+  border-color: rgba(184, 134, 11, 0.55);
+}
+
+.room-link[data-room-label="LEAVE%20HOUSE"]:hover {
+  background: rgba(184, 134, 11, 0.28);
+  border-color: rgba(184, 134, 11, 0.65);
+}
+
 /* Medium screens: 2 columns (Personal | Go), actions and other below */
 @media (min-width: 768px) {
   .room-grid {

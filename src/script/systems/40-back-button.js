@@ -244,6 +244,18 @@
     }
   });
 
+  /**
+   * Macro to explicitly disable back button on a passage
+   * Usage: <<noBackButton>>
+   * This ensures the back button is removed even if it was added elsewhere
+   */
+  Macro.add("noBackButton", {
+    handler() {
+      // Explicitly remove any back button that might exist
+      removeBackButton();
+    }
+  });
+
   // ---- Cleanup on Passage Change ------------------------------------------
 
   // Remove back button when starting a new passage

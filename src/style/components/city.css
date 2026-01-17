@@ -122,6 +122,17 @@
   outline-offset: 2px;
 }
 
+/* HOME button - dark green */
+.city-link[data-city-label="HOME"] {
+  background: rgba(0, 100, 0, 0.22); /* dark green */
+  border-color: rgba(0, 100, 0, 0.55);
+}
+
+.city-link[data-city-label="HOME"]:hover {
+  background: rgba(0, 100, 0, 0.28);
+  border-color: rgba(0, 100, 0, 0.65);
+}
+
 /* Medium screens: 2 columns */
 @media (min-width: 768px) {
   .city-grid {

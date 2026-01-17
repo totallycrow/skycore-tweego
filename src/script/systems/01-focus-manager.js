@@ -48,7 +48,9 @@
     temp.style.pointerEvents = "none";
     temp.style.width = "1px";
     temp.style.height = "1px";
-    temp.style.top = "-9999px";
+    // Use config value if available, otherwise use safe default
+    const hiddenY = Skycore.Config?.UI?.Offscreen?.HIDDEN_Y ?? -9999;
+    temp.style.top = `${hiddenY}px`;
     document.body.appendChild(temp);
     temp.focus();
     temp.click();

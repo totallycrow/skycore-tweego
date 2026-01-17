@@ -431,6 +431,17 @@
         /* no-op */
       }
     });
+
+    // Clean up group controllers on passage change to prevent memory leaks.
+    // When a passage changes, displays are removed from DOM without calling detach(),
+    // leaving stale entries in groupControllers Map.
+    jQuery(document).on(":passagestart", function () {
+      // Clear all group controller timers and remove stale entries
+      groupControllers.forEach((groupCtrl) => {
+        clearTimers(groupCtrl.state);
+      });
+      groupControllers.clear();
+    });
   } else {
     // Fallback: best-effort after DOM ready
     document.addEventListener("DOMContentLoaded", () => {

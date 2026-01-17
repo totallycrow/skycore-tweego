@@ -8,7 +8,7 @@
   window.Skycore = window.Skycore || {};
   Skycore.Systems = Skycore.Systems || {};
 
-  const { getAreaArray, getItem } = Skycore.Systems.InventoryHelpers;
+  const { getAreaArray, getItem, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { renderWardrobeSlots, slotHTML, matchesFilter } = Skycore.Systems.InventoryRender;
   const { ensureWardrobeHasEmptyRow } = Skycore.Systems.InventoryWardrobe;
 
@@ -28,11 +28,7 @@
     // Empty slots always match (always visible)
     // Inventory and wardrobe items are filtered - show icon but dimmed if doesn't match
     const hasItem = !!itemId;
-    const filterActive = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
+    const filterActive = isFilterActive(filter);
     
     const isFilteredOut = 
       area !== "eq" &&
@@ -141,11 +137,7 @@
     const inv = State.variables.invSys.inv;
     
     // Check if filter is active
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
+    const hasFilter = isFilterActive(filter);
     
     if (!hasFilter) {
       // No filter: render in original order
@@ -192,15 +184,10 @@
     const filter = State.variables.invSys?.filter || null;
     const { renderWardrobeSlots } = Skycore.Systems.InventoryRender;
     grid.innerHTML = renderWardrobeSlots(filter);
-    // Re-bind drag interactions after re-rendering
-    if (Skycore.Systems.InventoryDrag && Skycore.Systems.InventoryDrag.bindInteractions) {
-      const rootEl = grid.closest('[data-inv-root="1"]');
-      if (rootEl) {
-        // Re-bind only if needed - the bindInteractions should handle existing bindings
-        // Actually, we shouldn't re-bind here as it might cause duplicate listeners
-        // The slots will work because they're in the same root
-      }
-    }
+    // NOTE: No need to re-bind listeners here. The drag system uses event delegation
+    // on the root element ([data-inv-root="1"]), not on individual slots. When we
+    // replace innerHTML, the root's listeners remain intact and continue to work
+    // for the new slot elements via event bubbling.
   }
 
   function clearDropTargets(root) {

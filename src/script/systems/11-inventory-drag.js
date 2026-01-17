@@ -15,42 +15,14 @@
   const { AlertModal, ConfirmModal, ItemModal, FilterModal } = Skycore.Systems.InventoryModals;
   const { cleanUpEquipped, cleanUpInventory, cleanUpWardrobe, unequipAll, sendAllInventoryToWardrobe, sendAllWardrobeToInventory } = Skycore.Systems.InventoryActions;
   const { setActiveTab } = Skycore.Systems.InventoryTabs;
-  const { blurActiveIfInsideRoot, resetFocus, blurActive } = Skycore.Systems.FocusManager || {};
-  const { Offscreen } = Skycore.Config?.UI || {};
+  // FocusManager is always available (loaded at 01-focus-manager.js before this file)
+  const { blurActiveIfInsideRoot, resetFocus, blurActive } = Skycore.Systems.FocusManager;
 
   // ---- Pointer interactions: tap vs drag ---------------------------------
   function bindInteractions(root) {
     // Prevent duplicate bindings
     if (root.hasAttribute("data-interactions-bound")) return;
     root.setAttribute("data-interactions-bound", "true");
-    
-    // Use centralized FocusManager if available, otherwise use local implementation
-    const blurActiveIfInsideRootFn = blurActiveIfInsideRoot || function(container) {
-      const ae = document.activeElement;
-      if (!ae || !(ae instanceof HTMLElement)) return;
-      const containerEl = container || root;
-      if (containerEl && containerEl instanceof HTMLElement && !containerEl.contains(ae)) return;
-      const tag = ae.tagName;
-      if (tag === "BUTTON" || tag === "A" || ae.classList.contains("inv-slot") || ae.classList.contains("inv-btn")) {
-        ae.blur();
-      }
-    };
-
-    const resetFocusFn = resetFocus || function() {
-      const temp = document.createElement("button");
-      temp.style.position = "fixed";
-      temp.style.opacity = "0";
-      temp.style.pointerEvents = "none";
-      temp.style.width = "1px";
-      temp.style.height = "1px";
-      temp.style.top = (Offscreen && Offscreen.HIDDEN_Y) ? `${Offscreen.HIDDEN_Y}px` : "-9999px";
-      document.body.appendChild(temp);
-      temp.focus();
-      temp.click();
-      setTimeout(() => {
-        try { document.body.removeChild(temp); } catch(e) {}
-      }, 0);
-    };
 
     // Tabs
     root.addEventListener("click", (ev) => {
@@ -58,7 +30,7 @@
       if (tabBtn) {
         setActiveTab(root, tabBtn.dataset.tabBtn);
         // Reset focus by clicking background to prevent iOS focus stickiness
-        setTimeout(resetFocusFn, 0);
+        setTimeout(resetFocus, 0);
         return;
       }
 
@@ -80,15 +52,9 @@
       if (action === "send-wardrobe-all-inv") sendAllWardrobeToInventory(root);
 
       function refreshFilteredUI() {
-        // Check if filter is active (use helper function)
+        // Check if filter is active
         const currentFilter = State.variables.invSys?.filter || null;
-        const filterActive = isFilterActive ? isFilterActive(currentFilter) : (
-          currentFilter && (
-            (Array.isArray(currentFilter.category) && currentFilter.category.length > 0) ||
-            (Array.isArray(currentFilter.type) && currentFilter.type.length > 0) ||
-            (Array.isArray(currentFilter.slot) && currentFilter.slot.length > 0)
-          )
-        );
+        const filterActive = isFilterActive(currentFilter);
         
         // Update equipped slots (never filtered)
         const { updateAllSlots } = Skycore.Systems.InventoryDOM;
@@ -273,7 +239,7 @@
           }
         }
         // Let the click handler run first, then blur
-        setTimeout(() => blurActiveIfInsideRootFn(root), 10);
+        setTimeout(() => blurActiveIfInsideRoot(root), 10);
       }
     }, true);
 
@@ -281,7 +247,7 @@
     root.addEventListener("pointerdown", (ev) => {
       if (ev.pointerType === "touch" || ev.pointerType === "pen") {
         const btn = ev.target.closest("button, [role='button']");
-        if (!btn) setTimeout(() => blurActiveIfInsideRootFn(root), 0);
+        if (!btn) setTimeout(() => blurActiveIfInsideRoot(root), 0);
       }
     }, true);
 

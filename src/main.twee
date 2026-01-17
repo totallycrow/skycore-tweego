@@ -58,7 +58,7 @@ Right now it's just an ominous void with hangers that look judgmental.
 :: City
 <<city>>
 
-<<backButton "Room">>
+<<noBackButton>>
 
 
 :: Shopping Mall

@@ -85,13 +85,7 @@
     
     // Check if filter is active - if so, re-render to show sorted order
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
     
     if (hasFilter) {
       const { rerenderInventoryGrid } = Skycore.Systems.InventoryDOM;
@@ -168,13 +162,7 @@
   function sendAllInventoryToWardrobe(root) {
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
     let movedAny = false;
 
     for (let i = 0; i < inv.length; i++) {
@@ -200,13 +188,7 @@
     const wardrobe = State.variables.invSys.wardrobe;
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
     
     let attempted = 0;
     let moved = 0;

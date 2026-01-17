@@ -27,7 +27,8 @@
       items: [
         { label: "UNIVERSITY", kind: "todo" },
         { label: "SHOPPING MALL", kind: "passage", passage: "Shopping Mall" },
-        { label: "PUB", kind: "todo" }
+        { label: "PUB", kind: "todo" },
+        { label: "HOME", kind: "passage", passage: "Room" }
       ]
     }
   ];

@@ -756,6 +756,17 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   outline-offset: 2px;
 }
 
+/* HOME button - dark green */
+.city-link[data-city-label="HOME"] {
+  background: rgba(0, 100, 0, 0.22); /* dark green */
+  border-color: rgba(0, 100, 0, 0.55);
+}
+
+.city-link[data-city-label="HOME"]:hover {
+  background: rgba(0, 100, 0, 0.28);
+  border-color: rgba(0, 100, 0, 0.65);
+}
+
 /* Medium screens: 2 columns */
 @media (min-width: 768px) {
   .city-grid {
@@ -2549,6 +2560,17 @@ body.inv-dragging .inv-ward-slot {
 .room-link:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.35);
   outline-offset: 2px;
+}
+
+/* LEAVE HOUSE button - dark yellow */
+.room-link[data-room-label="LEAVE%20HOUSE"] {
+  background: rgba(184, 134, 11, 0.22); /* dark yellow */
+  border-color: rgba(184, 134, 11, 0.55);
+}
+
+.room-link[data-room-label="LEAVE%20HOUSE"]:hover {
+  background: rgba(184, 134, 11, 0.28);
+  border-color: rgba(184, 134, 11, 0.65);
 }
 
 /* Medium screens: 2 columns (Personal | Go), actions and other below */
@@ -4694,7 +4716,9 @@ $(document).on(':storyinit', function () {
     temp.style.pointerEvents = "none";
     temp.style.width = "1px";
     temp.style.height = "1px";
-    temp.style.top = "-9999px";
+    // Use config value if available, otherwise use safe default
+    const hiddenY = Skycore.Config?.UI?.Offscreen?.HIDDEN_Y ?? -9999;
+    temp.style.top = `${hiddenY}px`;
     document.body.appendChild(temp);
     temp.focus();
     temp.click();
@@ -5424,7 +5448,7 @@ $(document).on(':storyinit', function () {
   window.Skycore = window.Skycore || {};
   Skycore.Systems = Skycore.Systems || {};
 
-  const { getItem, getCat, getEquipSlot } = Skycore.Systems.InventoryHelpers;
+  const { getItem, getCat, getEquipSlot, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { ensureWardrobeCapacity, ensureWardrobeHasEmptyRow } = Skycore.Systems.InventoryWardrobe;
   const { CFG, WARD_MIN_SIZE } = Skycore.Systems.InventoryConfig;
 
@@ -5475,11 +5499,7 @@ $(document).on(':storyinit', function () {
     
     // Determine if item is filtered out
     const hasItem = !!itemId;
-    const filterActive = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
+    const filterActive = isFilterActive(filter);
     
     const isFilteredOut = 
       area !== "eq" &&
@@ -5505,9 +5525,7 @@ $(document).on(':storyinit', function () {
   }
 
   function filterAndSortSlots(arr, filter) {
-    if (!filter || (!Array.isArray(filter.category) || filter.category.length === 0) &&
-        (!Array.isArray(filter.type) || filter.type.length === 0) &&
-        (!Array.isArray(filter.slot) || filter.slot.length === 0)) {
+    if (!isFilterActive(filter)) {
       // No filter active, return as-is
       return arr.map((id, i) => ({ id, index: i, matches: true }));
     }
@@ -5605,12 +5623,8 @@ $(document).on(':storyinit', function () {
     const W = State.variables.invSys.wardrobe;
     
     // Check if filter is active
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
-    
+    const hasFilter = isFilterActive(filter);
+
     // If no filter, render in original order
     if (!hasFilter) {
       return W.map((id, i) => {
@@ -5678,14 +5692,7 @@ $(document).on(':storyinit', function () {
   function renderUI(activeTab = "inventory") {
     const filter = State.variables.invSys?.filter || null;
     // Use helper function if available
-    const { isFilterActive } = Skycore.Systems.InventoryHelpers || {};
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
 
     // Validate state before accessing
     const invSys = State.variables.invSys;
@@ -5703,9 +5710,7 @@ $(document).on(':storyinit', function () {
     // Inventory items are filtered
     // If no filter, render in original order
     let invSlots;
-    if (!filter || (!Array.isArray(filter.category) || filter.category.length === 0) &&
-        (!Array.isArray(filter.type) || filter.type.length === 0) &&
-        (!Array.isArray(filter.slot) || filter.slot.length === 0)) {
+    if (!isFilterActive(filter)) {
       invSlots = invSys.inv.map((id, i) => {
         return slotHTML("inv", i, id, filter, true);
       }).join("");
@@ -5964,7 +5969,7 @@ $(document).on(':storyinit', function () {
   window.Skycore = window.Skycore || {};
   Skycore.Systems = Skycore.Systems || {};
 
-  const { getAreaArray, getItem } = Skycore.Systems.InventoryHelpers;
+  const { getAreaArray, getItem, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { renderWardrobeSlots, slotHTML, matchesFilter } = Skycore.Systems.InventoryRender;
   const { ensureWardrobeHasEmptyRow } = Skycore.Systems.InventoryWardrobe;
 
@@ -5984,11 +5989,7 @@ $(document).on(':storyinit', function () {
     // Empty slots always match (always visible)
     // Inventory and wardrobe items are filtered - show icon but dimmed if doesn't match
     const hasItem = !!itemId;
-    const filterActive = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
+    const filterActive = isFilterActive(filter);
     
     const isFilteredOut = 
       area !== "eq" &&
@@ -6097,11 +6098,7 @@ $(document).on(':storyinit', function () {
     const inv = State.variables.invSys.inv;
     
     // Check if filter is active
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
+    const hasFilter = isFilterActive(filter);
     
     if (!hasFilter) {
       // No filter: render in original order
@@ -6148,15 +6145,10 @@ $(document).on(':storyinit', function () {
     const filter = State.variables.invSys?.filter || null;
     const { renderWardrobeSlots } = Skycore.Systems.InventoryRender;
     grid.innerHTML = renderWardrobeSlots(filter);
-    // Re-bind drag interactions after re-rendering
-    if (Skycore.Systems.InventoryDrag && Skycore.Systems.InventoryDrag.bindInteractions) {
-      const rootEl = grid.closest('[data-inv-root="1"]');
-      if (rootEl) {
-        // Re-bind only if needed - the bindInteractions should handle existing bindings
-        // Actually, we shouldn't re-bind here as it might cause duplicate listeners
-        // The slots will work because they're in the same root
-      }
-    }
+    // NOTE: No need to re-bind listeners here. The drag system uses event delegation
+    // on the root element ([data-inv-root="1"]), not on individual slots. When we
+    // replace innerHTML, the root's listeners remain intact and continue to work
+    // for the new slot elements via event bubbling.
   }
 
   function clearDropTargets(root) {
@@ -7640,13 +7632,7 @@ $(document).on(':storyinit', function () {
     
     // Check if filter is active - if so, re-render to show sorted order
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
     
     if (hasFilter) {
       const { rerenderInventoryGrid } = Skycore.Systems.InventoryDOM;
@@ -7723,13 +7709,7 @@ $(document).on(':storyinit', function () {
   function sendAllInventoryToWardrobe(root) {
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
     let movedAny = false;
 
     for (let i = 0; i < inv.length; i++) {
@@ -7755,13 +7735,7 @@ $(document).on(':storyinit', function () {
     const wardrobe = State.variables.invSys.wardrobe;
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
     
     let attempted = 0;
     let moved = 0;
@@ -8076,42 +8050,14 @@ $(document).on(':storyinit', function () {
   const { AlertModal, ConfirmModal, ItemModal, FilterModal } = Skycore.Systems.InventoryModals;
   const { cleanUpEquipped, cleanUpInventory, cleanUpWardrobe, unequipAll, sendAllInventoryToWardrobe, sendAllWardrobeToInventory } = Skycore.Systems.InventoryActions;
   const { setActiveTab } = Skycore.Systems.InventoryTabs;
-  const { blurActiveIfInsideRoot, resetFocus, blurActive } = Skycore.Systems.FocusManager || {};
-  const { Offscreen } = Skycore.Config?.UI || {};
+  // FocusManager is always available (loaded at 01-focus-manager.js before this file)
+  const { blurActiveIfInsideRoot, resetFocus, blurActive } = Skycore.Systems.FocusManager;
 
   // ---- Pointer interactions: tap vs drag ---------------------------------
   function bindInteractions(root) {
     // Prevent duplicate bindings
     if (root.hasAttribute("data-interactions-bound")) return;
     root.setAttribute("data-interactions-bound", "true");
-    
-    // Use centralized FocusManager if available, otherwise use local implementation
-    const blurActiveIfInsideRootFn = blurActiveIfInsideRoot || function(container) {
-      const ae = document.activeElement;
-      if (!ae || !(ae instanceof HTMLElement)) return;
-      const containerEl = container || root;
-      if (containerEl && containerEl instanceof HTMLElement && !containerEl.contains(ae)) return;
-      const tag = ae.tagName;
-      if (tag === "BUTTON" || tag === "A" || ae.classList.contains("inv-slot") || ae.classList.contains("inv-btn")) {
-        ae.blur();
-      }
-    };
-
-    const resetFocusFn = resetFocus || function() {
-      const temp = document.createElement("button");
-      temp.style.position = "fixed";
-      temp.style.opacity = "0";
-      temp.style.pointerEvents = "none";
-      temp.style.width = "1px";
-      temp.style.height = "1px";
-      temp.style.top = (Offscreen && Offscreen.HIDDEN_Y) ? `${Offscreen.HIDDEN_Y}px` : "-9999px";
-      document.body.appendChild(temp);
-      temp.focus();
-      temp.click();
-      setTimeout(() => {
-        try { document.body.removeChild(temp); } catch(e) {}
-      }, 0);
-    };
 
     // Tabs
     root.addEventListener("click", (ev) => {
@@ -8119,7 +8065,7 @@ $(document).on(':storyinit', function () {
       if (tabBtn) {
         setActiveTab(root, tabBtn.dataset.tabBtn);
         // Reset focus by clicking background to prevent iOS focus stickiness
-        setTimeout(resetFocusFn, 0);
+        setTimeout(resetFocus, 0);
         return;
       }
 
@@ -8141,15 +8087,9 @@ $(document).on(':storyinit', function () {
       if (action === "send-wardrobe-all-inv") sendAllWardrobeToInventory(root);
 
       function refreshFilteredUI() {
-        // Check if filter is active (use helper function)
+        // Check if filter is active
         const currentFilter = State.variables.invSys?.filter || null;
-        const filterActive = isFilterActive ? isFilterActive(currentFilter) : (
-          currentFilter && (
-            (Array.isArray(currentFilter.category) && currentFilter.category.length > 0) ||
-            (Array.isArray(currentFilter.type) && currentFilter.type.length > 0) ||
-            (Array.isArray(currentFilter.slot) && currentFilter.slot.length > 0)
-          )
-        );
+        const filterActive = isFilterActive(currentFilter);
         
         // Update equipped slots (never filtered)
         const { updateAllSlots } = Skycore.Systems.InventoryDOM;
@@ -8334,7 +8274,7 @@ $(document).on(':storyinit', function () {
           }
         }
         // Let the click handler run first, then blur
-        setTimeout(() => blurActiveIfInsideRootFn(root), 10);
+        setTimeout(() => blurActiveIfInsideRoot(root), 10);
       }
     }, true);
 
@@ -8342,7 +8282,7 @@ $(document).on(':storyinit', function () {
     root.addEventListener("pointerdown", (ev) => {
       if (ev.pointerType === "touch" || ev.pointerType === "pen") {
         const btn = ev.target.closest("button, [role='button']");
-        if (!btn) setTimeout(() => blurActiveIfInsideRootFn(root), 0);
+        if (!btn) setTimeout(() => blurActiveIfInsideRoot(root), 0);
       }
     }, true);
 
@@ -11928,6 +11868,17 @@ $(document).on(':storyinit', function () {
         /* no-op */
       }
     });
+
+    // Clean up group controllers on passage change to prevent memory leaks.
+    // When a passage changes, displays are removed from DOM without calling detach(),
+    // leaving stale entries in groupControllers Map.
+    jQuery(document).on(":passagestart", function () {
+      // Clear all group controller timers and remove stale entries
+      groupControllers.forEach((groupCtrl) => {
+        clearTimers(groupCtrl.state);
+      });
+      groupControllers.clear();
+    });
   } else {
     // Fallback: best-effort after DOM ready
     document.addEventListener("DOMContentLoaded", () => {
@@ -13164,6 +13115,18 @@ $(document).on(':storyinit', function () {
     }
   });
 
+  /**
+   * Macro to explicitly disable back button on a passage
+   * Usage: <<noBackButton>>
+   * This ensures the back button is removed even if it was added elsewhere
+   */
+  Macro.add("noBackButton", {
+    handler() {
+      // Explicitly remove any back button that might exist
+      removeBackButton();
+    }
+  });
+
   // ---- Cleanup on Passage Change ------------------------------------------
 
   // Remove back button when starting a new passage
@@ -13436,7 +13399,8 @@ $(document).on(':storyinit', function () {
       items: [
         { label: "UNIVERSITY", kind: "todo" },
         { label: "SHOPPING MALL", kind: "passage", passage: "Shopping Mall" },
-        { label: "PUB", kind: "todo" }
+        { label: "PUB", kind: "todo" },
+        { label: "HOME", kind: "passage", passage: "Room" }
       ]
     }
   ];
@@ -13973,7 +13937,7 @@ Right now it&#39;s just an ominous void with hangers that look judgmental.
 
 &lt;&lt;backButton &quot;Settings&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="9" name="City" tags="" position="1100,100" size="100,100">&lt;&lt;city&gt;&gt;
 
-&lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="10" name="Shopping Mall" tags="" position="1225,100" size="100,100">&lt;&lt;shoppingMall&gt;&gt;
+&lt;&lt;noBackButton&gt;&gt;</tw-passagedata><tw-passagedata pid="10" name="Shopping Mall" tags="" position="1225,100" size="100,100">&lt;&lt;shoppingMall&gt;&gt;
 
 &lt;&lt;backButton &quot;City&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="11" name="NPC Widgets" tags="widget" position="100,225" size="100,100">&lt;&lt;widget &quot;displayNPC&quot;&gt;&gt;
     &lt;&lt;set _npc = NPC.get(_args[0])&gt;&gt;

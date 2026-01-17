@@ -8,7 +8,7 @@
   window.Skycore = window.Skycore || {};
   Skycore.Systems = Skycore.Systems || {};
 
-  const { getItem, getCat, getEquipSlot } = Skycore.Systems.InventoryHelpers;
+  const { getItem, getCat, getEquipSlot, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { ensureWardrobeCapacity, ensureWardrobeHasEmptyRow } = Skycore.Systems.InventoryWardrobe;
   const { CFG, WARD_MIN_SIZE } = Skycore.Systems.InventoryConfig;
 
@@ -59,11 +59,7 @@
     
     // Determine if item is filtered out
     const hasItem = !!itemId;
-    const filterActive = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
+    const filterActive = isFilterActive(filter);
     
     const isFilteredOut = 
       area !== "eq" &&
@@ -89,9 +85,7 @@
   }
 
   function filterAndSortSlots(arr, filter) {
-    if (!filter || (!Array.isArray(filter.category) || filter.category.length === 0) &&
-        (!Array.isArray(filter.type) || filter.type.length === 0) &&
-        (!Array.isArray(filter.slot) || filter.slot.length === 0)) {
+    if (!isFilterActive(filter)) {
       // No filter active, return as-is
       return arr.map((id, i) => ({ id, index: i, matches: true }));
     }
@@ -189,12 +183,8 @@
     const W = State.variables.invSys.wardrobe;
     
     // Check if filter is active
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
-    );
-    
+    const hasFilter = isFilterActive(filter);
+
     // If no filter, render in original order
     if (!hasFilter) {
       return W.map((id, i) => {
@@ -262,14 +252,7 @@
   function renderUI(activeTab = "inventory") {
     const filter = State.variables.invSys?.filter || null;
     // Use helper function if available
-    const { isFilterActive } = Skycore.Systems.InventoryHelpers || {};
-    const hasFilter = isFilterActive ? isFilterActive(filter) : (
-      filter && (
-        (Array.isArray(filter.category) && filter.category.length > 0) ||
-        (Array.isArray(filter.type) && filter.type.length > 0) ||
-        (Array.isArray(filter.slot) && filter.slot.length > 0)
-      )
-    );
+    const hasFilter = isFilterActive(filter);
 
     // Validate state before accessing
     const invSys = State.variables.invSys;
@@ -287,9 +270,7 @@
     // Inventory items are filtered
     // If no filter, render in original order
     let invSlots;
-    if (!filter || (!Array.isArray(filter.category) || filter.category.length === 0) &&
-        (!Array.isArray(filter.type) || filter.type.length === 0) &&
-        (!Array.isArray(filter.slot) || filter.slot.length === 0)) {
+    if (!isFilterActive(filter)) {
       invSlots = invSys.inv.map((id, i) => {
         return slotHTML("inv", i, id, filter, true);
       }).join("");
