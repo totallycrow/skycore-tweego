@@ -65,14 +65,14 @@
       isReadAsFemale: false
     };
 
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
+    if (Skycore.Systems.PresentationEngine?.compute) {
       presentationResult = Skycore.Systems.PresentationEngine.compute({}, eq);
     }
 
     // Get outfit comment/quote
     let outfitComment = "";
     let outfitState = "";
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.getOutfitComment) {
+    if (Skycore.Systems.PresentationEngine?.getOutfitComment) {
       try {
         const commentData = Skycore.Systems.PresentationEngine.getOutfitComment(eq);
         if (commentData && commentData.comment) {
@@ -80,7 +80,12 @@
           outfitState = commentData.state || "";
         }
       } catch (e) {
-        console.error("Error getting outfit comment:", e);
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("PresentationState.getOutfitComment", e, { equipment: eq });
+        } else {
+          console.error("Error getting outfit comment:", e);
+        }
       }
     }
 
@@ -95,15 +100,15 @@
 
     // Get outfit vibes (tags from equipped clothing)
     let outfitVibes = [];
-    if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.getOutfitVibes) {
+    if (Skycore.Systems.CharacterDisplay?.getOutfitVibes) {
       outfitVibes = Skycore.Systems.CharacterDisplay.getOutfitVibes(eq);
     }
 
     // Get gender read text (for stats display)
     let genderRead = "Error: Presentation read system not loaded.";
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.getGenderRead) {
+    if (Skycore.Systems.PresentationEngine?.getGenderRead) {
       genderRead = Skycore.Systems.PresentationEngine.getGenderRead() || genderRead;
-    } else if (Skycore.Systems.PresentationRead && Skycore.Systems.PresentationRead.getGenderRead) {
+    } else if (Skycore.Systems.PresentationRead?.getGenderRead) {
       genderRead = Skycore.Systems.PresentationRead.getGenderRead();
     }
 

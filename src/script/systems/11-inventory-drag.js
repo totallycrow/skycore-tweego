@@ -120,7 +120,7 @@
         const actionSections = root.querySelectorAll('.inv-tabpanel[data-tab-panel="inventory"] .inv-actions');
         actionSections.forEach(actions => {
           const removeFilterLink = actions.querySelector('[data-action="remove-filter"]');
-          if (isFilterActive) {
+          if (filterActive) {
             // Add remove filter link if it doesn't exist
             if (!removeFilterLink) {
               const removeLink = document.createElement("a");
@@ -394,7 +394,12 @@
 
       const invSys = State.variables.invSys;
       if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv) || !Array.isArray(invSys.wardrobe)) {
-        console.warn('commitDrop: invSys not properly initialized');
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("InventoryDrag.commitDrop", "invSys not properly initialized", { invSys });
+        } else {
+          console.warn('commitDrop: invSys not properly initialized');
+        }
         return false;
       }
       const eq = invSys.eq;
@@ -737,7 +742,12 @@
       
       // Validate area and index before accessing array
       if (!area || isNaN(index) || index < 0) {
-        console.warn(`Invalid slot access: area=${area}, index=${index}`);
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("InventoryDrag.pointerdown", "Invalid slot access", { area, index });
+        } else {
+          console.warn(`Invalid slot access: area=${area}, index=${index}`);
+        }
         return;
       }
       
@@ -745,7 +755,12 @@
       
       // Validate array exists and index is in bounds
       if (!Array.isArray(arr) || index >= arr.length) {
-        console.warn(`Invalid array access: area=${area}, index=${index}, arrayLength=${arr ? arr.length : 'null'}`);
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("InventoryDrag.pointerdown", "Invalid array access", { area, index, arrayLength: arr?.length });
+        } else {
+          console.warn(`Invalid array access: area=${area}, index=${index}, arrayLength=${arr ? arr.length : 'null'}`);
+        }
         return;
       }
       

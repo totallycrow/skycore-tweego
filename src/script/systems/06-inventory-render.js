@@ -347,20 +347,25 @@
       outfitState = presentationData.outfitState || "";
     } else {
       // Fallback to direct computation if PresentationState not available
-      if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
+      if (Skycore.Systems.PresentationEngine?.compute) {
         const result = Skycore.Systems.PresentationEngine.compute();
         presentationScore = Math.round(result.presentationScore);
         readAs = result.readAs;
       }
-      if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.getOutfitComment) {
+      if (Skycore.Systems.PresentationEngine?.getOutfitComment) {
         try {
           const commentData = Skycore.Systems.PresentationEngine.getOutfitComment();
-          if (commentData && commentData.comment) {
+          if (commentData?.comment) {
             outfitComment = commentData.comment;
             outfitState = commentData.state || "";
           }
         } catch (e) {
-          console.error("Error getting outfit comment:", e);
+          const { logError } = Skycore.Systems.ErrorHandler || {};
+          if (logError) {
+            logError("InventoryRender.getOutfitComment", e);
+          } else {
+            console.error("Error getting outfit comment:", e);
+          }
         }
       }
     }

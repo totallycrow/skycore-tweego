@@ -9,7 +9,7 @@
   Skycore.Systems = Skycore.Systems || {};
 
   const { EQ_SIZE, INV_SIZE } = Skycore.Systems.InventoryConfig;
-  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot, resizeArray } = Skycore.Systems.InventoryHelpers;
+  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot, resizeArray, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { updateAllSlots, rerenderWardrobeGrid, updateSlotEl } = Skycore.Systems.InventoryDOM;
   const { placeInWardrobe, ensureWardrobeHasEmptyRow, compactWardrobe } = Skycore.Systems.InventoryWardrobe;
   const { matchesFilter } = Skycore.Systems.InventoryRender;
@@ -18,7 +18,12 @@
   function cleanUpEquipped(root) {
     const invSys = State.variables.invSys;
     if (!invSys || !Array.isArray(invSys.eq)) {
-      console.warn('cleanUpEquipped: invSys.eq not initialized');
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("InventoryActions.cleanUpEquipped", "invSys.eq not initialized", { invSys });
+      } else {
+        console.warn('cleanUpEquipped: invSys.eq not initialized');
+      }
       return;
     }
     const eq = invSys.eq;
@@ -62,7 +67,12 @@
   function cleanUpInventory(root) {
     const invSys = State.variables.invSys;
     if (!invSys || !Array.isArray(invSys.inv)) {
-      console.warn('cleanUpInventory: invSys.inv not initialized');
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("InventoryActions.cleanUpInventory", "invSys.inv not initialized", { invSys });
+      } else {
+        console.warn('cleanUpInventory: invSys.inv not initialized');
+      }
       return;
     }
     const inv = invSys.inv;
@@ -75,10 +85,12 @@
     
     // Check if filter is active - if so, re-render to show sorted order
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
     
     if (hasFilter) {
@@ -97,7 +109,12 @@
   function unequipAll(root) {
     const invSys = State.variables.invSys;
     if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv)) {
-      console.warn('unequipAll: invSys not properly initialized');
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("InventoryActions.unequipAll", "invSys not properly initialized", { invSys });
+      } else {
+        console.warn('unequipAll: invSys not properly initialized');
+      }
       return;
     }
     const eq = invSys.eq;
@@ -151,10 +168,12 @@
   function sendAllInventoryToWardrobe(root) {
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
     let movedAny = false;
 
@@ -181,10 +200,12 @@
     const wardrobe = State.variables.invSys.wardrobe;
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
     
     let attempted = 0;

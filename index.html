@@ -5271,20 +5271,25 @@ $(document).on(':storyinit', function () {
       outfitState = presentationData.outfitState || "";
     } else {
       // Fallback to direct computation if PresentationState not available
-      if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
+      if (Skycore.Systems.PresentationEngine?.compute) {
         const result = Skycore.Systems.PresentationEngine.compute();
         presentationScore = Math.round(result.presentationScore);
         readAs = result.readAs;
       }
-      if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.getOutfitComment) {
+      if (Skycore.Systems.PresentationEngine?.getOutfitComment) {
         try {
           const commentData = Skycore.Systems.PresentationEngine.getOutfitComment();
-          if (commentData && commentData.comment) {
+          if (commentData?.comment) {
             outfitComment = commentData.comment;
             outfitState = commentData.state || "";
           }
         } catch (e) {
-          console.error("Error getting outfit comment:", e);
+          const { logError } = Skycore.Systems.ErrorHandler || {};
+          if (logError) {
+            logError("InventoryRender.getOutfitComment", e);
+          } else {
+            console.error("Error getting outfit comment:", e);
+          }
         }
       }
     }
@@ -7067,7 +7072,7 @@ $(document).on(':storyinit', function () {
   Skycore.Systems = Skycore.Systems || {};
 
   const { EQ_SIZE, INV_SIZE } = Skycore.Systems.InventoryConfig;
-  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot, resizeArray } = Skycore.Systems.InventoryHelpers;
+  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot, resizeArray, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { updateAllSlots, rerenderWardrobeGrid, updateSlotEl } = Skycore.Systems.InventoryDOM;
   const { placeInWardrobe, ensureWardrobeHasEmptyRow, compactWardrobe } = Skycore.Systems.InventoryWardrobe;
   const { matchesFilter } = Skycore.Systems.InventoryRender;
@@ -7076,7 +7081,12 @@ $(document).on(':storyinit', function () {
   function cleanUpEquipped(root) {
     const invSys = State.variables.invSys;
     if (!invSys || !Array.isArray(invSys.eq)) {
-      console.warn('cleanUpEquipped: invSys.eq not initialized');
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("InventoryActions.cleanUpEquipped", "invSys.eq not initialized", { invSys });
+      } else {
+        console.warn('cleanUpEquipped: invSys.eq not initialized');
+      }
       return;
     }
     const eq = invSys.eq;
@@ -7120,7 +7130,12 @@ $(document).on(':storyinit', function () {
   function cleanUpInventory(root) {
     const invSys = State.variables.invSys;
     if (!invSys || !Array.isArray(invSys.inv)) {
-      console.warn('cleanUpInventory: invSys.inv not initialized');
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("InventoryActions.cleanUpInventory", "invSys.inv not initialized", { invSys });
+      } else {
+        console.warn('cleanUpInventory: invSys.inv not initialized');
+      }
       return;
     }
     const inv = invSys.inv;
@@ -7133,10 +7148,12 @@ $(document).on(':storyinit', function () {
     
     // Check if filter is active - if so, re-render to show sorted order
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
     
     if (hasFilter) {
@@ -7155,7 +7172,12 @@ $(document).on(':storyinit', function () {
   function unequipAll(root) {
     const invSys = State.variables.invSys;
     if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv)) {
-      console.warn('unequipAll: invSys not properly initialized');
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("InventoryActions.unequipAll", "invSys not properly initialized", { invSys });
+      } else {
+        console.warn('unequipAll: invSys not properly initialized');
+      }
       return;
     }
     const eq = invSys.eq;
@@ -7209,10 +7231,12 @@ $(document).on(':storyinit', function () {
   function sendAllInventoryToWardrobe(root) {
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
     let movedAny = false;
 
@@ -7239,10 +7263,12 @@ $(document).on(':storyinit', function () {
     const wardrobe = State.variables.invSys.wardrobe;
     const inv = State.variables.invSys.inv;
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
     
     let attempted = 0;
@@ -7663,7 +7689,7 @@ $(document).on(':storyinit', function () {
         const actionSections = root.querySelectorAll('.inv-tabpanel[data-tab-panel="inventory"] .inv-actions');
         actionSections.forEach(actions => {
           const removeFilterLink = actions.querySelector('[data-action="remove-filter"]');
-          if (isFilterActive) {
+          if (filterActive) {
             // Add remove filter link if it doesn't exist
             if (!removeFilterLink) {
               const removeLink = document.createElement("a");
@@ -7937,7 +7963,12 @@ $(document).on(':storyinit', function () {
 
       const invSys = State.variables.invSys;
       if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv) || !Array.isArray(invSys.wardrobe)) {
-        console.warn('commitDrop: invSys not properly initialized');
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("InventoryDrag.commitDrop", "invSys not properly initialized", { invSys });
+        } else {
+          console.warn('commitDrop: invSys not properly initialized');
+        }
         return false;
       }
       const eq = invSys.eq;
@@ -8280,7 +8311,12 @@ $(document).on(':storyinit', function () {
       
       // Validate area and index before accessing array
       if (!area || isNaN(index) || index < 0) {
-        console.warn(`Invalid slot access: area=${area}, index=${index}`);
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("InventoryDrag.pointerdown", "Invalid slot access", { area, index });
+        } else {
+          console.warn(`Invalid slot access: area=${area}, index=${index}`);
+        }
         return;
       }
       
@@ -8288,7 +8324,12 @@ $(document).on(':storyinit', function () {
       
       // Validate array exists and index is in bounds
       if (!Array.isArray(arr) || index >= arr.length) {
-        console.warn(`Invalid array access: area=${area}, index=${index}, arrayLength=${arr ? arr.length : 'null'}`);
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("InventoryDrag.pointerdown", "Invalid array access", { area, index, arrayLength: arr?.length });
+        } else {
+          console.warn(`Invalid array access: area=${area}, index=${index}, arrayLength=${arr ? arr.length : 'null'}`);
+        }
         return;
       }
       
@@ -9295,14 +9336,14 @@ $(document).on(':storyinit', function () {
       isReadAsFemale: false
     };
 
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.compute) {
+    if (Skycore.Systems.PresentationEngine?.compute) {
       presentationResult = Skycore.Systems.PresentationEngine.compute({}, eq);
     }
 
     // Get outfit comment/quote
     let outfitComment = "";
     let outfitState = "";
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.getOutfitComment) {
+    if (Skycore.Systems.PresentationEngine?.getOutfitComment) {
       try {
         const commentData = Skycore.Systems.PresentationEngine.getOutfitComment(eq);
         if (commentData && commentData.comment) {
@@ -9310,7 +9351,12 @@ $(document).on(':storyinit', function () {
           outfitState = commentData.state || "";
         }
       } catch (e) {
-        console.error("Error getting outfit comment:", e);
+        const { logError } = Skycore.Systems.ErrorHandler || {};
+        if (logError) {
+          logError("PresentationState.getOutfitComment", e, { equipment: eq });
+        } else {
+          console.error("Error getting outfit comment:", e);
+        }
       }
     }
 
@@ -9325,15 +9371,15 @@ $(document).on(':storyinit', function () {
 
     // Get outfit vibes (tags from equipped clothing)
     let outfitVibes = [];
-    if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.getOutfitVibes) {
+    if (Skycore.Systems.CharacterDisplay?.getOutfitVibes) {
       outfitVibes = Skycore.Systems.CharacterDisplay.getOutfitVibes(eq);
     }
 
     // Get gender read text (for stats display)
     let genderRead = "Error: Presentation read system not loaded.";
-    if (Skycore.Systems.PresentationEngine && Skycore.Systems.PresentationEngine.getGenderRead) {
+    if (Skycore.Systems.PresentationEngine?.getGenderRead) {
       genderRead = Skycore.Systems.PresentationEngine.getGenderRead() || genderRead;
-    } else if (Skycore.Systems.PresentationRead && Skycore.Systems.PresentationRead.getGenderRead) {
+    } else if (Skycore.Systems.PresentationRead?.getGenderRead) {
       genderRead = Skycore.Systems.PresentationRead.getGenderRead();
     }
 
@@ -10175,7 +10221,12 @@ $(document).on(':storyinit', function () {
       : element;
 
     if (!el) {
-      console.warn("CharacterDisplay: Element not found", element);
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("CharacterDisplay.update", `Element not found: ${element}`, { element });
+      } else {
+        console.warn("CharacterDisplay: Element not found", element);
+      }
       return;
     }
 
@@ -10194,7 +10245,12 @@ $(document).on(':storyinit', function () {
     // Find layers container
     const layersContainer = el.querySelector(".char-display-layers");
     if (!layersContainer) {
-      console.warn("CharacterDisplay: Layers container not found, re-rendering");
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("CharacterDisplay.update", "Layers container not found, re-rendering", { element: el });
+      } else {
+        console.warn("CharacterDisplay: Layers container not found, re-rendering");
+      }
       // Re-render the entire character display
       const rendered = renderCharacterDisplay({ 
         equipment: eq, 

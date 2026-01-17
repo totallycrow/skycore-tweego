@@ -337,7 +337,12 @@
       : element;
 
     if (!el) {
-      console.warn("CharacterDisplay: Element not found", element);
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("CharacterDisplay.update", `Element not found: ${element}`, { element });
+      } else {
+        console.warn("CharacterDisplay: Element not found", element);
+      }
       return;
     }
 
@@ -356,7 +361,12 @@
     // Find layers container
     const layersContainer = el.querySelector(".char-display-layers");
     if (!layersContainer) {
-      console.warn("CharacterDisplay: Layers container not found, re-rendering");
+      const { logError } = Skycore.Systems.ErrorHandler || {};
+      if (logError) {
+        logError("CharacterDisplay.update", "Layers container not found, re-rendering", { element: el });
+      } else {
+        console.warn("CharacterDisplay: Layers container not found, re-rendering");
+      }
       // Re-render the entire character display
       const rendered = renderCharacterDisplay({ 
         equipment: eq, 
