@@ -204,6 +204,9 @@
         const newRoot = wrap.querySelector('[data-inv-root="1"]');
         bindInteractions(newRoot);
         setActiveTab(newRoot, currentTab);
+        
+        // Re-attach blink animation after UI refresh (character display was rebuilt)
+        Skycore.Systems.EyeBlink?.attachAll?.(wrap);
       }
       
       if (action === "remove-set") {

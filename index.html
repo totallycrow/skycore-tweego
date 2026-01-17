@@ -245,7 +245,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   flex-direction: column;
   align-items: center;
   justify-content: flex-start; /* don't re-center when meta height changes */
-  padding: var(--panel-pad, 12px);
+  padding: 10px; /* reduced from 12px to give more space to sprite */
   border: var(--border, 1px solid rgba(255, 255, 255, 0.14));
   border-radius: var(--radius, 14px);
   background: rgba(0, 0, 0, 0.22);
@@ -256,7 +256,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 /* Smaller sizing when in UI bar */
 #ui-bar-body .char-sidebar .char-display {
   min-height: 240px;
-  padding: 10px;
+  padding: 8px; /* reduced from 10px */
 }
 
 .char-sidebar .char-display-container {
@@ -267,16 +267,23 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   justify-content: center;
   position: relative;
   min-height: 0; /* critical: allows flex child to shrink without forcing layout */
-  padding: 2px;
+  padding: 0; /* reduced from 2px to give more space to sprite */
   box-sizing: border-box;
   overflow: hidden;
+  /* Give the sidebar character area a deterministic height so sprites can't collapse */
+  height: clamp(200px, 32vh, 320px);
+}
+
+/* UI bar variant: a bit smaller but still deterministic */
+#ui-bar-body .char-sidebar .char-display-container {
+  height: clamp(160px, 24vh, 260px);
 }
 
 .char-sidebar .char-display-layers {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 180px;
+  min-height: 0; /* changed from 180px to allow full height usage */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -292,10 +299,23 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   pointer-events: none;
 }
 
+.char-sidebar .char-display-layer-base {
+  z-index: 1;
+}
+
+.char-sidebar .char-display-layer-eyes {
+  z-index: 2;
+}
+
+.char-sidebar .char-display-layer-clothing {
+  z-index: 3;
+}
+
+/* Make sprite fill container (like inventory) */
 .char-sidebar .char-display-sprite {
   width: auto !important;
   max-width: 100% !important;
-  height: auto !important;
+  height: 100% !important;      /* key change: fill available height */
   max-height: 100% !important;
   object-fit: contain;
   opacity: 0.95;
@@ -880,6 +900,10 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 .char-display-layer-base {
   z-index: 1;
+}
+
+.char-display-layer-eyes {
+  z-index: 2;
 }
 
 .char-display-layer-clothing {
@@ -3344,6 +3368,31 @@ body.inv-dragging {
 Config.saves.autoload = false; 
 Config.history.controls = true; // Helpful for debugging
 
+/* UI Configuration - Static (does not go into saves) */
+window.Skycore = window.Skycore || {};
+Skycore.Config = Skycore.Config || {};
+Skycore.Config.Anim = Skycore.Config.Anim || {};
+
+Skycore.Config.Anim.EyeBlink = {
+  enabled: true,
+
+  // First blink after attach (so player notices)
+  firstMinMs: 450,
+  firstMaxMs: 1200,
+
+  // Thereafter (time between subsequent blinks)
+  minIdleMs: 1500,
+  maxIdleMs: 4000,
+
+  // Blink phase timings (animation speed)
+  tHalf1Ms: 60,
+  tClosedMs: 80,
+  tHalf2Ms: 60,
+
+  // Behavior: if true, always do quick blink on attach (great for inventory UX)
+  // If false, only quick blink on the very first time ever
+  quickOnAttach: true
+};
 
 /* Static Data - Does not go into saves */
 setup.characters = {
@@ -6411,6 +6460,9 @@ $(document).on(':storyinit', function () {
         const newRoot = wrap.querySelector('[data-inv-root="1"]');
         bindInteractions(newRoot);
         setActiveTab(newRoot, currentTab);
+        
+        // Re-attach blink animation after UI refresh (character display was rebuilt)
+        Skycore.Systems.EyeBlink?.attachAll?.(wrap);
       }
       
       if (action === "remove-set") {
@@ -7098,6 +7150,9 @@ $(document).on(':storyinit', function () {
       if (Skycore.Systems.InventoryDOM && Skycore.Systems.InventoryDOM.updatePresentationScore) {
         Skycore.Systems.InventoryDOM.updatePresentationScore(root);
       }
+      
+      // Attach blink to any character displays inside inventory UI
+      Skycore.Systems.EyeBlink?.attachAll?.(wrap);
     }
   });
 
@@ -8454,6 +8509,13 @@ $(document).on(':storyinit', function () {
       basic: "assets/mc-basic.webp"
     },
     
+    // Eye sprite paths (for blink animation)
+    eyesSprites: {
+      open: "assets/mc-eyes/eyes-open.webp",
+      half: "assets/mc-eyes/eyes-half-closed.webp",
+      closed: "assets/mc-eyes/eyes-closed.webp"
+    },
+    
     // Default angle/view (for future expansion)
     defaultAngle: "front",
     
@@ -8462,6 +8524,7 @@ $(document).on(':storyinit', function () {
       // Layer order (bottom to top)
       order: [
         "base",      // Base character sprite
+        "eyes",      // Eyes layer (for blink animation)
         "underwear", // Underwear layer
         "clothing",  // Clothing layer
         "accessories" // Accessories layer
@@ -8470,6 +8533,7 @@ $(document).on(':storyinit', function () {
       // Z-index mapping for CSS layering
       zIndex: {
         base: 1,
+        eyes: 2,
         underwear: 2,
         clothing: 3,
         accessories: 4
@@ -8678,6 +8742,13 @@ $(document).on(':storyinit', function () {
              class="char-display-sprite char-display-sprite-base"
              data-sprite-type="base">
       </div>
+      <div class="char-display-layer char-display-layer-eyes">
+        <img src="${DISPLAY_CONFIG.eyesSprites.open}"
+             alt=""
+             class="char-display-sprite char-display-sprite-eyes"
+             data-sprite-type="eyes"
+             draggable="false">
+      </div>
     `;
     
     // Add equipped item sprites as layers
@@ -8780,6 +8851,33 @@ $(document).on(':storyinit', function () {
         baseSpriteEl.setAttribute("src", newSrc);
         baseSpriteEl.src = newSrc;
       }
+    }
+    
+    // Ensure eyes layer exists (do not overwrite current src, blink may be mid-animation)
+    let eyesSpriteEl = layersContainer.querySelector(".char-display-sprite-eyes");
+    if (!eyesSpriteEl) {
+      const eyesLayer = document.createElement("div");
+      eyesLayer.className = "char-display-layer char-display-layer-eyes";
+
+      eyesSpriteEl = document.createElement("img");
+      eyesSpriteEl.className = "char-display-sprite char-display-sprite-eyes";
+      eyesSpriteEl.setAttribute("data-sprite-type", "eyes");
+      eyesSpriteEl.setAttribute("draggable", "false");
+      eyesSpriteEl.src = DISPLAY_CONFIG.eyesSprites.open;
+
+      eyesLayer.appendChild(eyesSpriteEl);
+
+      // Insert after base layer
+      const baseLayer = layersContainer.querySelector(".char-display-layer-base");
+      if (baseLayer && baseLayer.nextSibling) {
+        layersContainer.insertBefore(eyesLayer, baseLayer.nextSibling);
+      } else {
+        layersContainer.appendChild(eyesLayer);
+      }
+    } else {
+      // If src is missing for any reason, restore open
+      const src = eyesSpriteEl.getAttribute("src");
+      if (!src) eyesSpriteEl.src = DISPLAY_CONFIG.eyesSprites.open;
     }
     
     // Remove existing clothing layers
@@ -9149,6 +9247,9 @@ $(document).on(':storyinit', function () {
       const wrap = document.createElement("div");
       wrap.innerHTML = renderCharacterSidebar();
       this.output.appendChild(wrap);
+      
+      // Attach blink to character display
+      Skycore.Systems.EyeBlink?.attachAll?.(wrap);
     }
   });
 
@@ -9290,6 +9391,9 @@ $(document).on(':storyinit', function () {
     if (sidebarEl && Skycore.Systems.CharacterSidebar && Skycore.Systems.CharacterSidebar.bindActions) {
       Skycore.Systems.CharacterSidebar.bindActions(sidebarEl);
     }
+    
+    // Attach blink to character display in sidebar
+    Skycore.Systems.EyeBlink?.attachAll?.(sidebarContainer);
   }
 
   // Close sidebar on passage navigation (mobile only)
@@ -9326,7 +9430,263 @@ $(document).on(':storyinit', function () {
     initUIBarSidebar
   };
 })();
-/* twine-user-script #26: "40-back-button.js" */
+/* twine-user-script #26: "33-eye-blink.js" */
+/* =========================================================================
+   Eye Blink Animation (Modular, Mobile-first)
+   - Works with any .char-display element that contains .char-display-sprite-eyes
+   - Low CPU: scheduled timeouts only
+   - Pauses on tab hidden, respects reduced motion
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  const controllers = new WeakMap();
+
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  function getBlinkConfig() {
+    // Static defaults (code-level)
+    const base = (Skycore.Config?.Anim?.EyeBlink) ? Skycore.Config.Anim.EyeBlink : {};
+
+    // SugarCube runtime overrides (in saves) - allows tweaking in-game
+    const V = window.State?.variables;
+    const fromVars = V?.uiBlink || V?.blink || {}; // pick one convention
+
+    // Merge: vars override static
+    return Object.assign({}, base, fromVars);
+  }
+
+  function getEyesSprites() {
+    const cfg = Skycore.Systems.CharacterDisplay?.CONFIG;
+    return cfg?.eyesSprites || {
+      open: "assets/mc-eyes/eyes-open.webp",
+      half: "assets/mc-eyes/eyes-half-closed.webp",
+      closed: "assets/mc-eyes/eyes-closed.webp"
+    };
+  }
+
+  function randInt(min, max) {
+    return Math.floor(min + Math.random() * (max - min + 1));
+  }
+
+  function getEyesEl(charDisplayEl) {
+    return charDisplayEl?.querySelector?.(".char-display-sprite-eyes") || null;
+  }
+
+  function clearTimers(state) {
+    if (state.nextTimer) clearTimeout(state.nextTimer);
+    if (state.phaseTimer) clearTimeout(state.phaseTimer);
+    state.nextTimer = null;
+    state.phaseTimer = null;
+  }
+
+  function setEyesFrame(eyesEl, frameKey) {
+    const sprites = getEyesSprites();
+    const src = sprites[frameKey] || sprites.open;
+    if (eyesEl && eyesEl.src !== src) eyesEl.src = src;
+  }
+
+  function scheduleNext(charDisplayEl, state) {
+    clearTimers(state);
+    if (!state.enabled) return;
+    if (!charDisplayEl.isConnected) return;
+
+    const wait = randInt(state.minIdleMs, state.maxIdleMs);
+    state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), wait);
+  }
+
+  function blinkOnce(charDisplayEl, state) {
+    if (!state.enabled) return;
+    if (document.hidden) return;
+    if (!charDisplayEl.isConnected) return;
+
+    const eyesEl = getEyesEl(charDisplayEl);
+    if (!eyesEl) {
+      // The character display is being re-rendered (e.g. applying item sets).
+      // Do NOT let the blink controller die—just try again later.
+      scheduleNext(charDisplayEl, state);
+      return;
+    }
+
+    // half -> closed -> half -> open (delicate)
+    setEyesFrame(eyesEl, "half");
+    state.phaseTimer = setTimeout(() => {
+      setEyesFrame(eyesEl, "closed");
+      state.phaseTimer = setTimeout(() => {
+        setEyesFrame(eyesEl, "half");
+        state.phaseTimer = setTimeout(() => {
+          setEyesFrame(eyesEl, "open");
+          state.hasBlinkedOnce = true;
+          scheduleNext(charDisplayEl, state);
+        }, state.tHalf2Ms);
+      }, state.tClosedMs);
+    }, state.tHalf1Ms);
+  }
+
+  function attach(charDisplayEl, options = {}) {
+    if (!charDisplayEl) return;
+    if (prefersReducedMotion()) return;
+
+    const eyesEl = getEyesEl(charDisplayEl);
+    if (!eyesEl) return; // eyes layer not present -> nothing to animate
+
+    // Get merged config (static + SugarCube variables)
+    const cfg = getBlinkConfig();
+
+    // Get or create state
+    const existing = controllers.get(charDisplayEl);
+    const state = existing || {
+      enabled: true,
+
+      // First blink window
+      firstMinMs: 450,
+      firstMaxMs: 1200,
+
+      // Subsequent blink window
+      minIdleMs: 2500,
+      maxIdleMs: 6500,
+
+      // Phase timings
+      tHalf1Ms: 60,
+      tClosedMs: 80,
+      tHalf2Ms: 60,
+
+      // Behavior
+      quickOnAttach: true,   // Always do quick blink on attach (great for inventory UX)
+      hasBlinkedOnce: false,
+
+      nextTimer: null,
+      phaseTimer: null
+    };
+
+    // ALWAYS apply config (so edits take effect even if controller already exists)
+    if (typeof cfg.enabled === "boolean") state.enabled = cfg.enabled;
+
+    if (Number.isFinite(cfg.firstMinMs)) state.firstMinMs = cfg.firstMinMs;
+    if (Number.isFinite(cfg.firstMaxMs)) state.firstMaxMs = cfg.firstMaxMs;
+
+    if (Number.isFinite(cfg.minIdleMs)) state.minIdleMs = cfg.minIdleMs;
+    if (Number.isFinite(cfg.maxIdleMs)) state.maxIdleMs = cfg.maxIdleMs;
+
+    if (Number.isFinite(cfg.tHalf1Ms)) state.tHalf1Ms = cfg.tHalf1Ms;
+    if (Number.isFinite(cfg.tClosedMs)) state.tClosedMs = cfg.tClosedMs;
+    if (Number.isFinite(cfg.tHalf2Ms)) state.tHalf2Ms = cfg.tHalf2Ms;
+
+    if (typeof cfg.quickOnAttach === "boolean") state.quickOnAttach = cfg.quickOnAttach;
+
+    // Apply per-call options last (highest priority)
+    if (typeof options.enabled === "boolean") state.enabled = options.enabled;
+
+    if (Number.isFinite(options.firstMinMs)) state.firstMinMs = options.firstMinMs;
+    if (Number.isFinite(options.firstMaxMs)) state.firstMaxMs = options.firstMaxMs;
+
+    if (Number.isFinite(options.minIdleMs)) state.minIdleMs = options.minIdleMs;
+    if (Number.isFinite(options.maxIdleMs)) state.maxIdleMs = options.maxIdleMs;
+
+    if (Number.isFinite(options.tHalf1Ms)) state.tHalf1Ms = options.tHalf1Ms;
+    if (Number.isFinite(options.tClosedMs)) state.tClosedMs = options.tClosedMs;
+    if (Number.isFinite(options.tHalf2Ms)) state.tHalf2Ms = options.tHalf2Ms;
+
+    if (typeof options.quickOnAttach === "boolean") state.quickOnAttach = options.quickOnAttach;
+
+    // Store controller
+    controllers.set(charDisplayEl, state);
+
+    // Ensure starting frame is open
+    setEyesFrame(eyesEl, "open");
+
+    // Restart timers on every attach (prevents old long timers lingering)
+    clearTimers(state);
+
+    if (!state.enabled) return;
+
+    // If quickOnAttach is on, we always do a quick "first blink window" when attached
+    // (great for inventory open so player notices)
+    if (state.quickOnAttach) {
+      const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+      state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+    } else if (!state.hasBlinkedOnce) {
+      // Only quick on the very first time ever
+      const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+      state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+    } else {
+      // Normal cadence
+      scheduleNext(charDisplayEl, state);
+    }
+  }
+
+  function detach(charDisplayEl) {
+    const state = controllers.get(charDisplayEl);
+    if (!state) return;
+
+    clearTimers(state);
+    controllers.delete(charDisplayEl);
+
+    // Reset to open if still present
+    const eyesEl = getEyesEl(charDisplayEl);
+    if (eyesEl) setEyesFrame(eyesEl, "open");
+  }
+
+  function attachAll(root) {
+    const scope = root || document;
+    const displays = scope.querySelectorAll(".char-display");
+    displays.forEach(el => attach(el));
+  }
+
+  // Global pause/resume for mobile battery
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      // stop timers + reset to open
+      document.querySelectorAll(".char-display").forEach(el => {
+        const state = controllers.get(el);
+        if (!state) return;
+        clearTimers(state);
+        const eyesEl = getEyesEl(el);
+        if (eyesEl) setEyesFrame(eyesEl, "open");
+      });
+    } else {
+      // resume
+      document.querySelectorAll(".char-display").forEach(el => {
+        const state = controllers.get(el);
+        if (!state) return;
+        scheduleNext(el, state);
+      });
+    }
+  });
+
+  Skycore.Systems.EyeBlink = {
+    attach,
+    detach,
+    attachAll
+  };
+
+  // SugarCube: auto-attach on passage render (covers inventory macro timing)
+  if (window.jQuery) {
+    jQuery(document).on(":passagerender", function () {
+      try {
+        Skycore.Systems.EyeBlink.attachAll(document);
+      } catch (e) {
+        /* no-op */
+      }
+    });
+  } else {
+    // Fallback: best-effort after DOM ready
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        Skycore.Systems.EyeBlink.attachAll(document);
+      } catch (e) {
+        /* no-op */
+      }
+    });
+  }
+})();
+/* twine-user-script #27: "40-back-button.js" */
 /* =========================================================================
    Back Button System
 

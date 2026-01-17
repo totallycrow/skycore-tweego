@@ -121,6 +121,9 @@
       if (Skycore.Systems.InventoryDOM && Skycore.Systems.InventoryDOM.updatePresentationScore) {
         Skycore.Systems.InventoryDOM.updatePresentationScore(root);
       }
+      
+      // Attach blink to any character displays inside inventory UI
+      Skycore.Systems.EyeBlink?.attachAll?.(wrap);
     }
   });
 

@@ -22,6 +22,9 @@
       const wrap = document.createElement("div");
       wrap.innerHTML = renderCharacterSidebar();
       this.output.appendChild(wrap);
+      
+      // Attach blink to character display
+      Skycore.Systems.EyeBlink?.attachAll?.(wrap);
     }
   });
 
@@ -163,6 +166,9 @@
     if (sidebarEl && Skycore.Systems.CharacterSidebar && Skycore.Systems.CharacterSidebar.bindActions) {
       Skycore.Systems.CharacterSidebar.bindActions(sidebarEl);
     }
+    
+    // Attach blink to character display in sidebar
+    Skycore.Systems.EyeBlink?.attachAll?.(sidebarContainer);
   }
 
   // Close sidebar on passage navigation (mobile only)

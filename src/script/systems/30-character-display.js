@@ -20,6 +20,13 @@
       basic: "assets/mc-basic.webp"
     },
     
+    // Eye sprite paths (for blink animation)
+    eyesSprites: {
+      open: "assets/mc-eyes/eyes-open.webp",
+      half: "assets/mc-eyes/eyes-half-closed.webp",
+      closed: "assets/mc-eyes/eyes-closed.webp"
+    },
+    
     // Default angle/view (for future expansion)
     defaultAngle: "front",
     
@@ -28,6 +35,7 @@
       // Layer order (bottom to top)
       order: [
         "base",      // Base character sprite
+        "eyes",      // Eyes layer (for blink animation)
         "underwear", // Underwear layer
         "clothing",  // Clothing layer
         "accessories" // Accessories layer
@@ -36,6 +44,7 @@
       // Z-index mapping for CSS layering
       zIndex: {
         base: 1,
+        eyes: 2,
         underwear: 2,
         clothing: 3,
         accessories: 4
@@ -244,6 +253,13 @@
              class="char-display-sprite char-display-sprite-base"
              data-sprite-type="base">
       </div>
+      <div class="char-display-layer char-display-layer-eyes">
+        <img src="${DISPLAY_CONFIG.eyesSprites.open}"
+             alt=""
+             class="char-display-sprite char-display-sprite-eyes"
+             data-sprite-type="eyes"
+             draggable="false">
+      </div>
     `;
     
     // Add equipped item sprites as layers
@@ -346,6 +362,33 @@
         baseSpriteEl.setAttribute("src", newSrc);
         baseSpriteEl.src = newSrc;
       }
+    }
+    
+    // Ensure eyes layer exists (do not overwrite current src, blink may be mid-animation)
+    let eyesSpriteEl = layersContainer.querySelector(".char-display-sprite-eyes");
+    if (!eyesSpriteEl) {
+      const eyesLayer = document.createElement("div");
+      eyesLayer.className = "char-display-layer char-display-layer-eyes";
+
+      eyesSpriteEl = document.createElement("img");
+      eyesSpriteEl.className = "char-display-sprite char-display-sprite-eyes";
+      eyesSpriteEl.setAttribute("data-sprite-type", "eyes");
+      eyesSpriteEl.setAttribute("draggable", "false");
+      eyesSpriteEl.src = DISPLAY_CONFIG.eyesSprites.open;
+
+      eyesLayer.appendChild(eyesSpriteEl);
+
+      // Insert after base layer
+      const baseLayer = layersContainer.querySelector(".char-display-layer-base");
+      if (baseLayer && baseLayer.nextSibling) {
+        layersContainer.insertBefore(eyesLayer, baseLayer.nextSibling);
+      } else {
+        layersContainer.appendChild(eyesLayer);
+      }
+    } else {
+      // If src is missing for any reason, restore open
+      const src = eyesSpriteEl.getAttribute("src");
+      if (!src) eyesSpriteEl.src = DISPLAY_CONFIG.eyesSprites.open;
     }
     
     // Remove existing clothing layers
