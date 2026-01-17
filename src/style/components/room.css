@@ -1,0 +1,190 @@
+/* =========================================================================
+   Room Page (Hub)
+   Mobile-first responsive layout.
+
+   Breakpoints:
+   - Base: stacked
+   - >= 768px: 2 columns (Personal | Go), Actions full width below
+   - >= 1024px: 3 columns (Personal | Actions | Go)
+========================================================================= */
+
+.room-page {
+  /* Hard stop horizontal scroll on mobile */
+  max-width: 100%;
+  overflow-x: clip; /* stronger than hidden for layout; safe modern browsers */
+  box-sizing: border-box;
+
+  /* Comfortable padding; keep bottom space for fixed back button (if any) */
+  padding: 18px 14px 28px;
+  margin: 0 auto;
+  width: min(980px, 100%);
+
+  /* Subtle dotted paper background (scoped to this page only) */
+  position: relative;
+}
+
+.room-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 18px 18px;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.room-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.room-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.room-title {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.room-title-rule {
+  width: 160px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.65);
+  margin: 8px auto 0;
+  border-radius: 999px;
+}
+
+.room-image {
+  margin: 12px auto 18px;
+  width: 100%; /* Fit the content box, not viewport */
+  max-width: 520px; /* Preserve intended visual width cap */
+  background: rgba(86, 182, 255, 0.85);
+  border-radius: 6px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.room-image-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.room-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+  justify-items: stretch; /* Stretch items so they don't compute "wider than container" */
+}
+
+.room-section {
+  width: 100%; /* Fit the grid column width */
+  max-width: 360px; /* Preserve intended visual width cap */
+  text-align: center;
+}
+
+.room-section-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.room-section-links {
+  display: grid;
+  gap: 8px;
+}
+
+.room-link {
+  /* Match modal button styles (.inv-btn) */
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.room-link:active {
+  transform: translateY(1px);
+}
+
+.room-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.room-link:focus:not(:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+.room-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Medium screens: 2 columns (Personal | Go), actions and other below */
+@media (min-width: 768px) {
+  .room-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "personal go"
+      "actions other";
+    align-items: start;
+    justify-items: stretch;
+  }
+
+  .room-section {
+    width: 100%;
+  }
+
+  .room-section--personal { grid-area: personal; }
+  .room-section--go { grid-area: go; }
+  .room-section--actions { grid-area: actions; }
+  .room-section--other { grid-area: other; }
+}
+
+/* Desktop/wide: 3 columns, other full width below */
+@media (min-width: 1024px) {
+  .room-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-areas:
+      "personal actions go"
+      "other other other";
+  }
+
+  /* Remove max-width constraint so Other section can span full width */
+  .room-section--other {
+    max-width: none;
+  }
+}
+
+/* Mobile cursor fix (prevent blue highlight on Chrome) */
+@media (hover: none) and (pointer: coarse) {
+  .room-link {
+    cursor: default;
+  }
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .room-link:active {
+    transform: none;
+  }
+}

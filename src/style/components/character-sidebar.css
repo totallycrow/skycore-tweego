@@ -33,8 +33,8 @@
   padding: 10px; /* reduced from 12px to give more space to sprite */
   border: var(--border, 1px solid rgba(255, 255, 255, 0.14));
   border-radius: var(--radius, 14px);
-  background: rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.10);
+  backdrop-filter: none; /* Stage background handles blur, don't double-blur */
   box-sizing: border-box;
 }
 

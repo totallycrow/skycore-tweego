@@ -99,7 +99,9 @@
     // Build the complete sidebar component
     return `
       <div class="char-sidebar" data-char-sidebar="1">
-        ${characterDisplayHTML}
+        <div class="stage stage--sidebar" data-stage="sidebar">
+          ${characterDisplayHTML}
+        </div>
         ${outfitComment ? `
         <div class="char-sidebar-comment" data-outfit-state="${outfitState}">
           ${outfitComment}
@@ -109,6 +111,9 @@
         <div class="char-sidebar-actions">
           <button type="button" class="char-sidebar-btn" data-action="goto-inventory">
             INVENTORY
+          </button>
+          <button type="button" class="char-sidebar-btn" data-action="goto-settings">
+            SETTINGS
           </button>
         </div>
       </div>
@@ -201,6 +206,12 @@
       ${renderStatusBar("Arousal", arousal, "arousal")}
       ${renderStatusBar("Willpower", willpower, "willpower")}
     `;
+
+    // Reapply background theme if stage exists
+    const stage = el.querySelector(".stage--sidebar");
+    if (stage && Skycore.Systems.BackgroundThemes) {
+      Skycore.Systems.BackgroundThemes.applyStage(stage, "sidebar");
+    }
   }
 
   /**
@@ -229,6 +240,18 @@
         // Navigate to inventory passage using SugarCube
         if (typeof Engine !== 'undefined' && Engine.play) {
           Engine.play("Inventory");
+        }
+      });
+    }
+
+    // Settings button
+    const settingsBtn = sidebarEl.querySelector('[data-action="goto-settings"]');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Navigate to settings passage using SugarCube
+        if (typeof Engine !== 'undefined' && Engine.play) {
+          Engine.play("Settings");
         }
       });
     }

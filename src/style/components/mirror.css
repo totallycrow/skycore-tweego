@@ -9,61 +9,16 @@
 ========================================================================= */
 
 /* Unified background stage behind both panels */
-.mirror-stage {
+.mirror-stage.stage {
+  /* Inherit from generic .stage */
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
-
   padding: 12px;
-  border-radius: 22px;
-
-  border: 1px solid rgba(255,255,255,0.10);
-  overflow: hidden;
-  position: relative;
-
-  /* Defaults */
-  --mirror-bg-blur: 0px;
-  --mirror-stage-bg: radial-gradient(120% 120% at 50% 0%,
-    rgba(255,255,255,0.08),
-    rgba(0,0,0,0.55)
-  );
-  --mirror-stage-bg-size: auto;
-  --mirror-stage-bg-pos: center;
-  --mirror-stage-bg-repeat: no-repeat;
-  /* Background transform (for developer control) */
-  --mirror-bg-scale: 1;
-  --mirror-bg-x: 0%;
-  --mirror-bg-y: 0%;
-}
-
-/* Actual background layer (blur applies here only) */
-.mirror-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background: var(--mirror-stage-bg);
-  background-size: var(--mirror-stage-bg-size);
-  background-position: var(--mirror-stage-bg-pos);
-  background-repeat: var(--mirror-stage-bg-repeat);
-
-  filter: blur(var(--mirror-bg-blur));
-  /* Developer-controlled transform: scale + translate */
-  transform: scale(calc(var(--mirror-bg-scale) * 1.05)) translate(var(--mirror-bg-x), var(--mirror-bg-y));
-  transform-origin: center;
-  pointer-events: none;
-}
-
-/* Vignette on top of background */
-.mirror-stage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(80% 90% at 50% 10%,
-    rgba(0,0,0,0.10),
-    rgba(0,0,0,0.55)
-  );
-  pointer-events: none;
+  
+  /* Ensure blur vars are defined (will be overridden by applyStage) */
+  --stage-bg-blur: 0px;
+  --mirror-bg-blur: 0px; /* legacy support */
 }
 
 /* Content above background layers */
@@ -138,47 +93,17 @@
   /* Portrait config applied via JS - see MIRROR_PORTRAIT_CONFIG.desktop */
 }
 
-/* Background presets */
-.mirror-stage[data-bg="dark"] {
-  --mirror-stage-bg: radial-gradient(120% 120% at 50% 0%,
-    rgba(255,255,255,0.08),
-    rgba(0,0,0,0.55)
-  );
-}
-
+/* Mirror-specific background presets (inherit from .stage, add studio/blue if needed) */
 .mirror-stage[data-bg="studio"] {
-  --mirror-stage-bg: radial-gradient(140% 120% at 50% 0%,
+  --stage-bg: radial-gradient(140% 120% at 50% 0%,
     rgba(255,255,255,0.16),
     rgba(30,30,30,0.85)
   );
 }
 
-.mirror-stage[data-bg="pink"] {
-  --mirror-stage-bg: radial-gradient(140% 120% at 40% 0%,
-    rgba(255,140,200,0.18),
-    rgba(20,10,20,0.90)
-  );
-}
-
 .mirror-stage[data-bg="blue"] {
-  --mirror-stage-bg: radial-gradient(140% 120% at 50% 0%,
+  --stage-bg: radial-gradient(140% 120% at 50% 0%,
     rgba(120,180,255,0.18),
     rgba(10,15,25,0.92)
   );
-}
-
-/* Bedroom image background */
-.mirror-stage[data-bg="bedroom"] {
-  --mirror-stage-bg: url("assets/rooms/bedroom-default.webp");
-  --mirror-stage-bg-size: cover;
-  --mirror-stage-bg-pos: center;
-  --mirror-stage-bg-repeat: no-repeat;
-}
-
-/* Bedroom vertical image background */
-.mirror-stage[data-bg="bedroom-vertical"] {
-  --mirror-stage-bg: url("assets/rooms/bedroom-vertical.webp");
-  --mirror-stage-bg-size: cover;
-  --mirror-stage-bg-pos: center;
-  --mirror-stage-bg-repeat: no-repeat;
 }

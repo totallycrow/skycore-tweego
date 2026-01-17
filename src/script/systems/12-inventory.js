@@ -117,6 +117,12 @@
       const root = wrap.querySelector('[data-inv-root="1"]');
       bindInteractions(root);
       
+      // Apply background theme to inventory character box
+      const inventoryStage = wrap.querySelector('.stage--inventory');
+      if (inventoryStage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(inventoryStage, "inventory");
+      }
+      
       // Ensure presentation score is up-to-date when inventory opens
       if (Skycore.Systems.InventoryDOM && Skycore.Systems.InventoryDOM.updatePresentationScore) {
         Skycore.Systems.InventoryDOM.updatePresentationScore(root);

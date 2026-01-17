@@ -145,9 +145,9 @@
     const bgConfig = MIRROR_BACKGROUND_CONFIG[bgType];
     if (!bgConfig) {
       // No config for this background, use defaults
-      mirrorStage.style.setProperty("--mirror-bg-scale", "1");
-      mirrorStage.style.setProperty("--mirror-bg-x", "0%");
-      mirrorStage.style.setProperty("--mirror-bg-y", "0%");
+      mirrorStage.style.setProperty("--stage-bg-scale", "1");
+      mirrorStage.style.setProperty("--stage-bg-x", "0%");
+      mirrorStage.style.setProperty("--stage-bg-y", "0%");
       return;
     }
 
@@ -163,9 +163,9 @@
       config = bgConfig.mobile;
     }
 
-    mirrorStage.style.setProperty("--mirror-bg-scale", config.scale.toString());
-    mirrorStage.style.setProperty("--mirror-bg-x", `${config.x}%`);
-    mirrorStage.style.setProperty("--mirror-bg-y", `${config.y}%`);
+    mirrorStage.style.setProperty("--stage-bg-scale", config.scale.toString());
+    mirrorStage.style.setProperty("--stage-bg-x", `${config.x}%`);
+    mirrorStage.style.setProperty("--stage-bg-y", `${config.y}%`);
   }
 
   function renderMirrorUI() {
@@ -188,18 +188,8 @@
         })
       : '<img src="assets/mc-naked.webp" alt="Character" style="width:100%;height:auto;">';
 
-    // Get background setting from State.variables, default to "dark"
-    const bgSetting = State.variables?.settings?.mirrorBg || "dark";
-
-    // Blur setting (0..16px)
-    const blurSettingRaw = State.variables?.settings?.mirrorBgBlur;
-    const blurSetting = Number.isFinite(blurSettingRaw) ? blurSettingRaw : 6;
-    const blurClamped = Math.max(0, Math.min(16, blurSetting));
-
     return `
-      <div class="mirror-stage"
-           data-bg="${bgSetting}"
-           style="--mirror-bg-blur: ${blurClamped}px;">
+      <div class="mirror-stage stage">
         <div class="mirror-ui" data-mirror-root="1">
           <section class="mirror-left" aria-label="Character (full)">
             <div class="mirror-panel mirror-panel--body">
@@ -225,18 +215,26 @@
       wrap.innerHTML = renderMirrorUI();
       this.output.appendChild(wrap);
 
-      // Get background setting to apply background config
-      const bgSetting = State.variables?.settings?.mirrorBg || "dark";
+      // Apply background theme (uses BackgroundThemes system)
       const mirrorStage = wrap.querySelector(".mirror-stage");
-      if (mirrorStage) {
-        applyBackgroundConfig(mirrorStage, bgSetting);
+      if (mirrorStage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(mirrorStage, "mirror");
+        
+        // Apply developer background config (zoom/position)
+        const bgSetting = mirrorStage.getAttribute("data-bg");
+        if (bgSetting) {
+          applyBackgroundConfig(mirrorStage, bgSetting);
+        }
 
         // Update background config on resize (debounced)
         let resizeTimer;
         const updateBackgroundOnResize = () => {
           clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
-            applyBackgroundConfig(mirrorStage, bgSetting);
+            Skycore.Systems.BackgroundThemes.applyStage(mirrorStage, "mirror");
+            if (bgSetting) {
+              applyBackgroundConfig(mirrorStage, bgSetting);
+            }
           }, 150);
         };
         window.addEventListener("resize", updateBackgroundOnResize);

@@ -9,39 +9,17 @@ Sandbox RPG
 }
 
 :: Start
-You wake up with the strange feeling that reality is buffering.
+<<goto "Room">>
 
-A mirror glints. A drawer is half-open. Your phone is suspiciously silent.
 
-<div class="inv-actions" style="margin-top: 16px;">
-	<<link "INVENTORY">>
-		<<goto "Inventory">>
-	<</link>>
-
-	<<link "WARDROBE">>
-		<<goto "Wardrobe">>
-	<</link>>
-
-	<<link "MC STATS">>
-		<<goto "MC Stats">>
-	<</link>>
-
-	<<link "MIRROR">>
-		<<goto "Mirror">>
-	<</link>>
-
-	<<link "SETTINGS">>
-		<<goto "Settings">>
-	<</link>>
-
-	
-</div>
+:: Room
+<<room>>
 
 
 :: Inventory
 <<gridInv>>
 
-<<backButton "Start">>
+<<backButton "Room">>
 
 
 :: Wardrobe
@@ -50,22 +28,28 @@ You open the wardrobe.
 Right now it's just an ominous void with hangers that look judgmental.
 (Next step: we'll build the wardrobe UI from `State.variables.invSys.wardrobe`.)
 
-<<backButton "Start">>
+<<backButton "Room">>
 
 
 :: MC Stats
 <<mcStats>>
 
-<<backButton "Start">>
+<<backButton "Room">>
 
 
 :: Mirror
 <div id="mirrorRoot"><<mirror>></div>
 
-<<backButton "Start">>
+<<backButton "Room">>
 
 
 :: Settings
-<<settings>>
+<<settingsHome>>
 
-<<backButton "Start">>
+<<backButton "Room">>
+
+
+:: Settings - Backgrounds
+<<settingsBackgrounds>>
+
+<<backButton "Settings">>

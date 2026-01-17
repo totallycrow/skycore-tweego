@@ -248,8 +248,8 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   padding: 10px; /* reduced from 12px to give more space to sprite */
   border: var(--border, 1px solid rgba(255, 255, 255, 0.14));
   border-radius: var(--radius, 14px);
-  background: rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.10);
+  backdrop-filter: none; /* Stage background handles blur, don't double-blur */
   box-sizing: border-box;
 }
 
@@ -2140,61 +2140,16 @@ body.inv-dragging {
 ========================================================================= */
 
 /* Unified background stage behind both panels */
-.mirror-stage {
+.mirror-stage.stage {
+  /* Inherit from generic .stage */
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
-
   padding: 12px;
-  border-radius: 22px;
-
-  border: 1px solid rgba(255,255,255,0.10);
-  overflow: hidden;
-  position: relative;
-
-  /* Defaults */
-  --mirror-bg-blur: 0px;
-  --mirror-stage-bg: radial-gradient(120% 120% at 50% 0%,
-    rgba(255,255,255,0.08),
-    rgba(0,0,0,0.55)
-  );
-  --mirror-stage-bg-size: auto;
-  --mirror-stage-bg-pos: center;
-  --mirror-stage-bg-repeat: no-repeat;
-  /* Background transform (for developer control) */
-  --mirror-bg-scale: 1;
-  --mirror-bg-x: 0%;
-  --mirror-bg-y: 0%;
-}
-
-/* Actual background layer (blur applies here only) */
-.mirror-stage::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background: var(--mirror-stage-bg);
-  background-size: var(--mirror-stage-bg-size);
-  background-position: var(--mirror-stage-bg-pos);
-  background-repeat: var(--mirror-stage-bg-repeat);
-
-  filter: blur(var(--mirror-bg-blur));
-  /* Developer-controlled transform: scale + translate */
-  transform: scale(calc(var(--mirror-bg-scale) * 1.05)) translate(var(--mirror-bg-x), var(--mirror-bg-y));
-  transform-origin: center;
-  pointer-events: none;
-}
-
-/* Vignette on top of background */
-.mirror-stage::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(80% 90% at 50% 10%,
-    rgba(0,0,0,0.10),
-    rgba(0,0,0,0.55)
-  );
-  pointer-events: none;
+  
+  /* Ensure blur vars are defined (will be overridden by applyStage) */
+  --stage-bg-blur: 0px;
+  --mirror-bg-blur: 0px; /* legacy support */
 }
 
 /* Content above background layers */
@@ -2269,51 +2224,212 @@ body.inv-dragging {
   /* Portrait config applied via JS - see MIRROR_PORTRAIT_CONFIG.desktop */
 }
 
-/* Background presets */
-.mirror-stage[data-bg="dark"] {
-  --mirror-stage-bg: radial-gradient(120% 120% at 50% 0%,
-    rgba(255,255,255,0.08),
-    rgba(0,0,0,0.55)
-  );
-}
-
+/* Mirror-specific background presets (inherit from .stage, add studio/blue if needed) */
 .mirror-stage[data-bg="studio"] {
-  --mirror-stage-bg: radial-gradient(140% 120% at 50% 0%,
+  --stage-bg: radial-gradient(140% 120% at 50% 0%,
     rgba(255,255,255,0.16),
     rgba(30,30,30,0.85)
   );
 }
 
-.mirror-stage[data-bg="pink"] {
-  --mirror-stage-bg: radial-gradient(140% 120% at 40% 0%,
-    rgba(255,140,200,0.18),
-    rgba(20,10,20,0.90)
-  );
-}
-
 .mirror-stage[data-bg="blue"] {
-  --mirror-stage-bg: radial-gradient(140% 120% at 50% 0%,
+  --stage-bg: radial-gradient(140% 120% at 50% 0%,
     rgba(120,180,255,0.18),
     rgba(10,15,25,0.92)
   );
 }
+/* twine-user-stylesheet #5: "room.css" */
+/* =========================================================================
+   Room Page (Hub)
+   Mobile-first responsive layout.
 
-/* Bedroom image background */
-.mirror-stage[data-bg="bedroom"] {
-  --mirror-stage-bg: url("assets/rooms/bedroom-default.webp");
-  --mirror-stage-bg-size: cover;
-  --mirror-stage-bg-pos: center;
-  --mirror-stage-bg-repeat: no-repeat;
+   Breakpoints:
+   - Base: stacked
+   - >= 768px: 2 columns (Personal | Go), Actions full width below
+   - >= 1024px: 3 columns (Personal | Actions | Go)
+========================================================================= */
+
+.room-page {
+  /* Hard stop horizontal scroll on mobile */
+  max-width: 100%;
+  overflow-x: clip; /* stronger than hidden for layout; safe modern browsers */
+  box-sizing: border-box;
+
+  /* Comfortable padding; keep bottom space for fixed back button (if any) */
+  padding: 18px 14px 28px;
+  margin: 0 auto;
+  width: min(980px, 100%);
+
+  /* Subtle dotted paper background (scoped to this page only) */
+  position: relative;
 }
 
-/* Bedroom vertical image background */
-.mirror-stage[data-bg="bedroom-vertical"] {
-  --mirror-stage-bg: url("assets/rooms/bedroom-vertical.webp");
-  --mirror-stage-bg-size: cover;
-  --mirror-stage-bg-pos: center;
-  --mirror-stage-bg-repeat: no-repeat;
+.room-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 18px 18px;
+  color: rgba(0, 0, 0, 0.35);
 }
-/* twine-user-stylesheet #5: "settings.css" */
+
+.room-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.room-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.room-title {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.room-title-rule {
+  width: 160px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.65);
+  margin: 8px auto 0;
+  border-radius: 999px;
+}
+
+.room-image {
+  margin: 12px auto 18px;
+  width: 100%; /* Fit the content box, not viewport */
+  max-width: 520px; /* Preserve intended visual width cap */
+  background: rgba(86, 182, 255, 0.85);
+  border-radius: 6px;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.room-image-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.room-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+  justify-items: stretch; /* Stretch items so they don't compute "wider than container" */
+}
+
+.room-section {
+  width: 100%; /* Fit the grid column width */
+  max-width: 360px; /* Preserve intended visual width cap */
+  text-align: center;
+}
+
+.room-section-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.room-section-links {
+  display: grid;
+  gap: 8px;
+}
+
+.room-link {
+  /* Match modal button styles (.inv-btn) */
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.room-link:active {
+  transform: translateY(1px);
+}
+
+.room-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.room-link:focus:not(:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+.room-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Medium screens: 2 columns (Personal | Go), actions and other below */
+@media (min-width: 768px) {
+  .room-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "personal go"
+      "actions other";
+    align-items: start;
+    justify-items: stretch;
+  }
+
+  .room-section {
+    width: 100%;
+  }
+
+  .room-section--personal { grid-area: personal; }
+  .room-section--go { grid-area: go; }
+  .room-section--actions { grid-area: actions; }
+  .room-section--other { grid-area: other; }
+}
+
+/* Desktop/wide: 3 columns, other full width below */
+@media (min-width: 1024px) {
+  .room-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-areas:
+      "personal actions go"
+      "other other other";
+  }
+
+  /* Remove max-width constraint so Other section can span full width */
+  .room-section--other {
+    max-width: none;
+  }
+}
+
+/* Mobile cursor fix (prevent blue highlight on Chrome) */
+@media (hover: none) and (pointer: coarse) {
+  .room-link {
+    cursor: default;
+  }
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .room-link:active {
+    transform: none;
+  }
+}
+/* twine-user-stylesheet #6: "settings.css" */
 .settings-page {
   max-width: 900px;
   margin: 0 auto;
@@ -2414,7 +2530,111 @@ body.inv-dragging {
 .settings-actions {
   margin-top: 12px;
 }
-/* twine-user-stylesheet #6: "stats.css" */
+
+.settings-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.settings-preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-preview-label {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.settings-preview {
+  padding: 10px;
+  min-height: 60px;
+}
+
+.settings-preview-card {
+  height: 60px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.03);
+  display: grid;
+  place-items: center;
+  opacity: 0.85;
+  font-weight: 600;
+}
+/* twine-user-stylesheet #7: "stage.css" */
+/* Generic stage background container (reused by Mirror/Inventory/Sidebar) */
+.stage {
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.10);
+  overflow: hidden;
+  position: relative;
+
+  --stage-bg-blur: 0px;
+  --stage-bg: radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.08), rgba(0,0,0,0.55));
+  --stage-bg-size: auto;
+  --stage-bg-pos: center;
+  --stage-bg-repeat: no-repeat;
+
+  /* optional dev transform */
+  --stage-bg-scale: 1;
+  --stage-bg-x: 0%;
+  --stage-bg-y: 0%;
+}
+
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--stage-bg);
+  background-size: var(--stage-bg-size);
+  background-position: var(--stage-bg-pos);
+  background-repeat: var(--stage-bg-repeat);
+
+  filter: blur(var(--stage-bg-blur));
+  transform: scale(calc(var(--stage-bg-scale) * 1.05)) translate(var(--stage-bg-x), var(--stage-bg-y));
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 90% at 50% 10%, rgba(0,0,0,0.10), rgba(0,0,0,0.55));
+  pointer-events: none;
+}
+
+.stage > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Presets (same IDs used everywhere) */
+.stage[data-bg="dark"] {
+  --stage-bg: radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.08), rgba(0,0,0,0.55));
+}
+
+.stage[data-bg="pink"] {
+  --stage-bg: radial-gradient(140% 120% at 40% 0%, rgba(255,140,200,0.18), rgba(20,10,20,0.90));
+}
+
+.stage[data-bg="bedroom"] {
+  --stage-bg: url("assets/rooms/bedroom-default.webp");
+  --stage-bg-size: cover;
+  --stage-bg-pos: center;
+  --stage-bg-repeat: no-repeat;
+}
+
+.stage[data-bg="bedroom-vertical"] {
+  --stage-bg: url("assets/rooms/bedroom-vertical.webp");
+  --stage-bg-size: cover;
+  --stage-bg-pos: center;
+  --stage-bg-repeat: no-repeat;
+}
+/* twine-user-stylesheet #8: "stats.css" */
 /* === MC Sheet v1: Stats Display (mobile-first) === */
 
 .mc-stats-container {
@@ -2570,8 +2790,8 @@ body.inv-dragging {
   color: rgba(255, 100, 100, 0.9);
   font-weight: 600;
 }
-/* twine-user-stylesheet #7: "desktop.css" */
-/* twine-user-stylesheet #8: "globals.css" */
+/* twine-user-stylesheet #9: "desktop.css" */
+/* twine-user-stylesheet #10: "globals.css" */
 .npc-profile {
   border: 1px solid #444;
   padding: 15px;
@@ -4738,7 +4958,7 @@ $(document).on(':storyinit', function () {
 
           <!-- TOP: always 2-column on mobile -->
           <div class="eq-top">
-            <div class="eq-charBox">
+            <div class="eq-charBox stage stage--inventory" data-stage="inventory">
               ${characterPlaceholderSVG()}
             </div>
 
@@ -7846,6 +8066,12 @@ $(document).on(':storyinit', function () {
       const root = wrap.querySelector('[data-inv-root="1"]');
       bindInteractions(root);
       
+      // Apply background theme to inventory character box
+      const inventoryStage = wrap.querySelector('.stage--inventory');
+      if (inventoryStage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(inventoryStage, "inventory");
+      }
+      
       // Ensure presentation score is up-to-date when inventory opens
       if (Skycore.Systems.InventoryDOM && Skycore.Systems.InventoryDOM.updatePresentationScore) {
         Skycore.Systems.InventoryDOM.updatePresentationScore(root);
@@ -9879,7 +10105,9 @@ $(document).on(':storyinit', function () {
     // Build the complete sidebar component
     return `
       <div class="char-sidebar" data-char-sidebar="1">
-        ${characterDisplayHTML}
+        <div class="stage stage--sidebar" data-stage="sidebar">
+          ${characterDisplayHTML}
+        </div>
         ${outfitComment ? `
         <div class="char-sidebar-comment" data-outfit-state="${outfitState}">
           ${outfitComment}
@@ -9889,6 +10117,9 @@ $(document).on(':storyinit', function () {
         <div class="char-sidebar-actions">
           <button type="button" class="char-sidebar-btn" data-action="goto-inventory">
             INVENTORY
+          </button>
+          <button type="button" class="char-sidebar-btn" data-action="goto-settings">
+            SETTINGS
           </button>
         </div>
       </div>
@@ -9981,6 +10212,12 @@ $(document).on(':storyinit', function () {
       ${renderStatusBar("Arousal", arousal, "arousal")}
       ${renderStatusBar("Willpower", willpower, "willpower")}
     `;
+
+    // Reapply background theme if stage exists
+    const stage = el.querySelector(".stage--sidebar");
+    if (stage && Skycore.Systems.BackgroundThemes) {
+      Skycore.Systems.BackgroundThemes.applyStage(stage, "sidebar");
+    }
   }
 
   /**
@@ -10009,6 +10246,18 @@ $(document).on(':storyinit', function () {
         // Navigate to inventory passage using SugarCube
         if (typeof Engine !== 'undefined' && Engine.play) {
           Engine.play("Inventory");
+        }
+      });
+    }
+
+    // Settings button
+    const settingsBtn = sidebarEl.querySelector('[data-action="goto-settings"]');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Navigate to settings passage using SugarCube
+        if (typeof Engine !== 'undefined' && Engine.play) {
+          Engine.play("Settings");
         }
       });
     }
@@ -10046,6 +10295,12 @@ $(document).on(':storyinit', function () {
       const wrap = document.createElement("div");
       wrap.innerHTML = renderCharacterSidebar();
       this.output.appendChild(wrap);
+      
+      // Apply background theme to sidebar character box
+      const sidebarStage = wrap.querySelector('.stage--sidebar');
+      if (sidebarStage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(sidebarStage, "sidebar");
+      }
       
       // Attach blink to character display
       Skycore.Systems.EyeBlink?.attachAll?.(wrap);
@@ -10184,6 +10439,23 @@ $(document).on(':storyinit', function () {
     
     // Insert after any existing content (below SAVES/RESTART buttons)
     uiBarBody.appendChild(sidebarContainer);
+
+    // Apply background theme to sidebar character box
+    const sidebarStage = sidebarContainer.querySelector('.stage--sidebar');
+    if (sidebarStage && Skycore.Systems.BackgroundThemes) {
+      Skycore.Systems.BackgroundThemes.applyStage(sidebarStage, "sidebar");
+    }
+
+    // Function to refresh sidebar stage background
+    function refreshSidebarStageBackground() {
+      const stage = document.querySelector("#char-sidebar-ui-bar-container .stage--sidebar");
+      if (stage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(stage, "sidebar");
+      }
+    }
+
+    // Listen for settings changes
+    document.addEventListener("skycore:backgrounds-changed", refreshSidebarStageBackground);
 
     // Bind event handlers for sidebar buttons
     const sidebarEl = sidebarContainer.querySelector('[data-char-sidebar="1"]');
@@ -10822,9 +11094,9 @@ $(document).on(':storyinit', function () {
     const bgConfig = MIRROR_BACKGROUND_CONFIG[bgType];
     if (!bgConfig) {
       // No config for this background, use defaults
-      mirrorStage.style.setProperty("--mirror-bg-scale", "1");
-      mirrorStage.style.setProperty("--mirror-bg-x", "0%");
-      mirrorStage.style.setProperty("--mirror-bg-y", "0%");
+      mirrorStage.style.setProperty("--stage-bg-scale", "1");
+      mirrorStage.style.setProperty("--stage-bg-x", "0%");
+      mirrorStage.style.setProperty("--stage-bg-y", "0%");
       return;
     }
 
@@ -10840,9 +11112,9 @@ $(document).on(':storyinit', function () {
       config = bgConfig.mobile;
     }
 
-    mirrorStage.style.setProperty("--mirror-bg-scale", config.scale.toString());
-    mirrorStage.style.setProperty("--mirror-bg-x", `${config.x}%`);
-    mirrorStage.style.setProperty("--mirror-bg-y", `${config.y}%`);
+    mirrorStage.style.setProperty("--stage-bg-scale", config.scale.toString());
+    mirrorStage.style.setProperty("--stage-bg-x", `${config.x}%`);
+    mirrorStage.style.setProperty("--stage-bg-y", `${config.y}%`);
   }
 
   function renderMirrorUI() {
@@ -10865,18 +11137,8 @@ $(document).on(':storyinit', function () {
         })
       : '<img src="assets/mc-naked.webp" alt="Character" style="width:100%;height:auto;">';
 
-    // Get background setting from State.variables, default to "dark"
-    const bgSetting = State.variables?.settings?.mirrorBg || "dark";
-
-    // Blur setting (0..16px)
-    const blurSettingRaw = State.variables?.settings?.mirrorBgBlur;
-    const blurSetting = Number.isFinite(blurSettingRaw) ? blurSettingRaw : 6;
-    const blurClamped = Math.max(0, Math.min(16, blurSetting));
-
     return `
-      <div class="mirror-stage"
-           data-bg="${bgSetting}"
-           style="--mirror-bg-blur: ${blurClamped}px;">
+      <div class="mirror-stage stage">
         <div class="mirror-ui" data-mirror-root="1">
           <section class="mirror-left" aria-label="Character (full)">
             <div class="mirror-panel mirror-panel--body">
@@ -10902,18 +11164,26 @@ $(document).on(':storyinit', function () {
       wrap.innerHTML = renderMirrorUI();
       this.output.appendChild(wrap);
 
-      // Get background setting to apply background config
-      const bgSetting = State.variables?.settings?.mirrorBg || "dark";
+      // Apply background theme (uses BackgroundThemes system)
       const mirrorStage = wrap.querySelector(".mirror-stage");
-      if (mirrorStage) {
-        applyBackgroundConfig(mirrorStage, bgSetting);
+      if (mirrorStage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(mirrorStage, "mirror");
+        
+        // Apply developer background config (zoom/position)
+        const bgSetting = mirrorStage.getAttribute("data-bg");
+        if (bgSetting) {
+          applyBackgroundConfig(mirrorStage, bgSetting);
+        }
 
         // Update background config on resize (debounced)
         let resizeTimer;
         const updateBackgroundOnResize = () => {
           clearTimeout(resizeTimer);
           resizeTimer = setTimeout(() => {
-            applyBackgroundConfig(mirrorStage, bgSetting);
+            Skycore.Systems.BackgroundThemes.applyStage(mirrorStage, "mirror");
+            if (bgSetting) {
+              applyBackgroundConfig(mirrorStage, bgSetting);
+            }
           }, 150);
         };
         window.addEventListener("resize", updateBackgroundOnResize);
@@ -10956,10 +11226,10 @@ $(document).on(':storyinit', function () {
 })();
 /* twine-user-script #28: "35-settings.js" */
 /* =========================================================================
-   Skycore System: Settings Page (Mirror Background)
-   - Stores values in State.variables.settings
-   - Background: dark | pink | bedroom
-   - Blur: 0..16px (applies via CSS var --mirror-bg-blur)
+   Skycore System: Settings Pages (Nested)
+   - Settings Home: Main menu
+   - Settings - Backgrounds: Background controls with sync toggle
+   - Uses BackgroundThemes system for unified background management
 ========================================================================= */
 
 (function () {
@@ -10968,129 +11238,406 @@ $(document).on(':storyinit', function () {
   window.Skycore = window.Skycore || {};
   Skycore.Systems = Skycore.Systems || {};
 
-  function ensureSettings() {
-    const sv = State.variables;
-    if (!sv.settings) sv.settings = {};
-    if (!sv.settings.mirrorBg) sv.settings.mirrorBg = "dark";
-    if (!Number.isFinite(sv.settings.mirrorBgBlur)) sv.settings.mirrorBgBlur = 6;
-    sv.settings.mirrorBgBlur = Math.max(0, Math.min(16, sv.settings.mirrorBgBlur));
+  const PRESETS = ["dark", "pink", "bedroom", "bedroom-vertical"];
+
+  function presetLabel(preset) {
+    const labels = {
+      dark: "Dark",
+      pink: "Pink",
+      bedroom: "Bedroom",
+      "bedroom-vertical": "Bedroom Vertical"
+    };
+    return labels[preset] || preset;
   }
 
-  function settingsHTML() {
-    const s = State.variables.settings;
-    const bg = s.mirrorBg || "dark";
-    const blur = Number.isFinite(s.mirrorBgBlur) ? s.mirrorBgBlur : 6;
-
-    const btn = (id, label) => `
-      <button type="button"
-              class="set-btn ${bg === id ? "is-active" : ""}"
-              data-set-bg="${id}">
-        ${label}
-      </button>
-    `;
-
+  function settingsHomeHTML() {
     return `
-      <div class="settings-page" data-settings-root="1">
+      <div class="settings-page">
         <h2 class="settings-title">Settings</h2>
 
         <div class="settings-block">
-          <div class="settings-label">Mirror background</div>
-          <div class="set-btn-row" role="group" aria-label="Mirror background">
-            ${btn("dark", "Dark")}
-            ${btn("pink", "Pink")}
-            ${btn("bedroom", "Bedroom")}
-            ${btn("bedroom-vertical", "Bedroom Vertical")}
-          </div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-label">
-            Background blur <span class="settings-value" data-blur-value="1">${blur}px</span>
-          </div>
-          <input class="set-slider"
-                 type="range"
-                 min="0"
-                 max="16"
-                 step="1"
-                 value="${blur}"
-                 data-set-blur="1"
-                 aria-label="Background blur" />
-          <div class="settings-hint">Tip: blur helps readability on image backgrounds.</div>
-        </div>
-
-        <div class="settings-block">
-          <div class="settings-label">Preview</div>
-          <div class="mirror-stage settings-preview"
-               data-bg="${bg}"
-               style="--mirror-bg-blur:${blur}px;">
-            <div class="settings-preview-inner">
-              <div class="settings-preview-card">Full</div>
-              <div class="settings-preview-card">Portrait</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-actions">
-          <button type="button" class="set-btn set-btn--wide" data-open-mirror="1">
-            Open Mirror
+          <div class="settings-label">Appearance</div>
+          <button type="button" class="set-btn set-btn--wide" data-goto="Settings - Backgrounds">
+            Backgrounds
           </button>
         </div>
       </div>
     `;
   }
 
-  function wire(root) {
-    root.addEventListener("click", (ev) => {
-      const bgBtn = ev.target.closest("[data-set-bg]");
-      if (bgBtn) {
-        ensureSettings();
-        State.variables.settings.mirrorBg = bgBtn.getAttribute("data-set-bg") || "dark";
-        // rerender Settings to update active state + preview
-        $("#passages").find("[data-settings-root]").replaceWith(settingsHTML());
-        // re-wire after replace
+  function settingsBackgroundsHTML() {
+    if (!Skycore.Systems.BackgroundThemes) {
+      return '<div class="settings-page"><p>BackgroundThemes system not loaded.</p></div>';
+    }
+
+    Skycore.Systems.BackgroundThemes.ensureSettings();
+    const s = State.variables.settings;
+    const sync = s.bgSync !== false; // default true
+
+    // Get current configs
+    const globalCfg = sync ? s.bg : { preset: s.bg?.preset || "dark", blur: s.bg?.blur || 6 };
+    const mirrorCfg = s.bgMirror || { preset: "dark", blur: 6 };
+    const invCfg = s.bgInventory || { preset: "dark", blur: 6 };
+    const sidebarCfg = s.bgSidebar || { preset: "dark", blur: 6 };
+
+    const btn = (id, label, active) => `
+      <button type="button"
+              class="set-btn ${active === id ? "is-active" : ""}"
+              data-set-preset="${id}">
+        ${label}
+      </button>
+    `;
+
+    const presetRow = (presets, activePreset, dataArea) => `
+      <div class="set-btn-row" role="group" aria-label="Background preset">
+        ${presets.map(p => btn(p, presetLabel(p), activePreset)).join("")}
+      </div>
+    `;
+
+    const blurSlider = (blur, dataArea) => `
+      <input class="set-slider"
+             type="range"
+             min="0"
+             max="16"
+             step="1"
+             value="${blur}"
+             data-set-blur="${dataArea}"
+             aria-label="Background blur" />
+    `;
+
+    const areaSection = (area, cfg, label) => {
+      const areaId = area === "mirror" ? "mirror" : area === "inventory" ? "inventory" : "sidebar";
+      return `
+        <div class="settings-block">
+          <div class="settings-label">${label}</div>
+          ${presetRow(PRESETS, cfg.preset, areaId)}
+          <div class="settings-label" style="margin-top: 12px;">
+            Blur <span class="settings-value" data-blur-value="${areaId}">${cfg.blur}px</span>
+          </div>
+          ${blurSlider(cfg.blur, areaId)}
+        </div>
+      `;
+    };
+
+    return `
+      <div class="settings-page" data-settings-root="1">
+        <h2 class="settings-title">Backgrounds</h2>
+
+        <div class="settings-block">
+          <div class="settings-label">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+              <input type="checkbox" 
+                     ${sync ? "checked" : ""} 
+                     data-sync-toggle="1"
+                     style="width: 20px; height: 20px; cursor: pointer;" />
+              <span>Sync all backgrounds</span>
+            </label>
+          </div>
+          <div class="settings-hint">When enabled, all areas use the same background and blur.</div>
+        </div>
+
+        ${sync ? `
+          <div class="settings-block">
+            <div class="settings-label">Background</div>
+            ${presetRow(PRESETS, globalCfg.preset, "global")}
+            <div class="settings-label" style="margin-top: 12px;">
+              Blur <span class="settings-value" data-blur-value="global">${globalCfg.blur}px</span>
+            </div>
+            ${blurSlider(globalCfg.blur, "global")}
+          </div>
+        ` : `
+          ${areaSection("mirror", mirrorCfg, "Mirror")}
+          ${areaSection("inventory", invCfg, "Inventory")}
+          ${areaSection("sidebar", sidebarCfg, "Sidebar")}
+        `}
+
+        <div class="settings-block">
+          <div class="settings-label">Preview</div>
+          <div class="settings-preview-grid">
+            <div class="settings-preview-item">
+              <div class="settings-preview-label">Mirror</div>
+              <div class="stage settings-preview stage--mirror-preview" data-stage-preview="mirror">
+                <div class="settings-preview-card">M</div>
+              </div>
+            </div>
+            <div class="settings-preview-item">
+              <div class="settings-preview-label">Inventory</div>
+              <div class="stage settings-preview stage--inventory-preview" data-stage-preview="inventory">
+                <div class="settings-preview-card">I</div>
+              </div>
+            </div>
+            <div class="settings-preview-item">
+              <div class="settings-preview-label">Sidebar</div>
+              <div class="stage settings-preview stage--sidebar-preview" data-stage-preview="sidebar">
+                <div class="settings-preview-card">S</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function updatePreviews(root) {
+    if (!Skycore.Systems.BackgroundThemes) return;
+    ["mirror", "inventory", "sidebar"].forEach(area => {
+      const preview = root.querySelector(`[data-stage-preview="${area}"]`);
+      if (preview) {
+        Skycore.Systems.BackgroundThemes.applyStage(preview, area);
+      }
+    });
+  }
+
+  function wireBackgrounds(root) {
+    // Sync toggle
+    root.addEventListener("change", (ev) => {
+      const syncToggle = ev.target.closest("[data-sync-toggle]");
+      if (syncToggle) {
+        Skycore.Systems.BackgroundThemes.ensureSettings();
+        const s = State.variables.settings;
+        const newSync = syncToggle.checked;
+
+        if (newSync) {
+          // Turning sync ON: copy current Mirror settings to global
+          s.bgSync = true;
+          s.bg = { ...s.bgMirror };
+        } else {
+          // Turning sync OFF: copy global to all areas
+          s.bgSync = false;
+          const global = s.bg || { preset: "dark", blur: 6 };
+          s.bgMirror = { ...global };
+          s.bgInventory = { ...global };
+          s.bgSidebar = { ...global };
+        }
+
+        // Notify all stages to refresh
+        Skycore.Systems.BackgroundThemes.notifyChanged?.();
+
+        // Rerender to show/hide per-area controls
+        $("#passages").find("[data-settings-root]").replaceWith(settingsBackgroundsHTML());
         Skycore.Systems.Settings?.wireCurrent?.();
         return;
       }
+    });
 
-      const openMirror = ev.target.closest("[data-open-mirror]");
-      if (openMirror) {
-        Engine.play("Mirror");
+    // Preset buttons
+    root.addEventListener("click", (ev) => {
+      const presetBtn = ev.target.closest("[data-set-preset]");
+      if (presetBtn) {
+        Skycore.Systems.BackgroundThemes.ensureSettings();
+        const s = State.variables.settings;
+        const preset = presetBtn.getAttribute("data-set-preset");
+        // Find which area this button belongs to by looking for nearby blur slider
+        const block = presetBtn.closest(".settings-block");
+        const blurSlider = block?.querySelector("[data-set-blur]");
+        const area = blurSlider?.getAttribute("data-set-blur") || "global";
+
+        if (s.bgSync || area === "global") {
+          if (!s.bg) s.bg = {};
+          s.bg.preset = preset;
+          
+          // If switching to bedroom and blur is still 0, apply tasteful default
+          if (preset === "bedroom" || preset === "bedroom-vertical") {
+            if (!Number.isFinite(s.bg.blur) || s.bg.blur === 0) {
+              s.bg.blur = 6;
+            }
+          }
+        } else {
+          const areaKey = area === "mirror" ? "bgMirror" : area === "inventory" ? "bgInventory" : "bgSidebar";
+          if (!s[areaKey]) s[areaKey] = {};
+          s[areaKey].preset = preset;
+          
+          // If switching to bedroom and blur is still 0, apply tasteful default
+          if (preset === "bedroom" || preset === "bedroom-vertical") {
+            const cfg = Skycore.Systems.BackgroundThemes.getBgConfig?.(area);
+            if (cfg && (cfg.blur === 0 || !Number.isFinite(cfg.blur))) {
+              s[areaKey].blur = 6;
+            }
+          }
+        }
+
+        // Notify all stages to refresh
+        Skycore.Systems.BackgroundThemes.notifyChanged?.();
+
+        // Rerender to update active state + previews
+        $("#passages").find("[data-settings-root]").replaceWith(settingsBackgroundsHTML());
+        Skycore.Systems.Settings?.wireCurrent?.();
+        return;
       }
     });
 
+    // Blur sliders
     root.addEventListener("input", (ev) => {
       const slider = ev.target.closest("[data-set-blur]");
       if (!slider) return;
 
-      ensureSettings();
+      Skycore.Systems.BackgroundThemes.ensureSettings();
+      const s = State.variables.settings;
+      const area = slider.getAttribute("data-set-blur");
       const v = Math.max(0, Math.min(16, parseInt(slider.value, 10) || 0));
-      State.variables.settings.mirrorBgBlur = v;
 
-      const valEl = root.querySelector("[data-blur-value]");
+      if (s.bgSync || area === "global") {
+        if (!s.bg) s.bg = {};
+        s.bg.blur = v;
+      } else {
+        const areaKey = area === "mirror" ? "bgMirror" : area === "inventory" ? "bgInventory" : "bgSidebar";
+        if (!s[areaKey]) s[areaKey] = {};
+        s[areaKey].blur = v;
+      }
+
+      // Update blur value display
+      const valEl = root.querySelector(`[data-blur-value="${area}"]`);
       if (valEl) valEl.textContent = `${v}px`;
 
-      const preview = root.querySelector(".settings-preview.mirror-stage");
-      if (preview) preview.style.setProperty("--mirror-bg-blur", `${v}px`);
+      // Notify all stages to refresh
+      Skycore.Systems.BackgroundThemes.notifyChanged?.();
+
+      // Update previews
+      updatePreviews(root);
     });
+
+    // Initial preview update
+    updatePreviews(root);
   }
 
-  Macro.add("settings", {
+  Macro.add("settingsHome", {
     handler() {
-      ensureSettings();
       const wrap = document.createElement("div");
-      wrap.innerHTML = settingsHTML();
+      wrap.innerHTML = settingsHomeHTML();
       this.output.appendChild(wrap);
-      wire(wrap);
-      // helper for rerender case
+
+      wrap.addEventListener("click", (ev) => {
+        const btn = ev.target.closest("[data-goto]");
+        if (btn) {
+          Engine.play(btn.getAttribute("data-goto"));
+        }
+      });
+    }
+  });
+
+  Macro.add("settingsBackgrounds", {
+    handler() {
+      if (!Skycore.Systems.BackgroundThemes) {
+        console.error("BackgroundThemes system required for settingsBackgrounds");
+        return;
+      }
+
+      Skycore.Systems.BackgroundThemes.ensureSettings();
+      const wrap = document.createElement("div");
+      wrap.innerHTML = settingsBackgroundsHTML();
+      this.output.appendChild(wrap);
+      wireBackgrounds(wrap);
+
+      // Helper for rerender case
       Skycore.Systems.Settings = Skycore.Systems.Settings || {};
       Skycore.Systems.Settings.wireCurrent = () => {
         const r = document.querySelector("[data-settings-root]");
-        if (r) wire(r);
+        if (r) wireBackgrounds(r);
       };
     }
   });
+
+  // Backward compat: old <<settings>> macro
+  Macro.add("settings", {
+    handler() {
+      // Redirect to backgrounds page for backward compatibility
+      Engine.play("Settings - Backgrounds");
+    }
+  });
 })();
-/* twine-user-script #29: "40-back-button.js" */
+/* twine-user-script #29: "36-background-themes.js" */
+/* =========================================================================
+   BackgroundThemes: unified background presets + sync logic
+   Areas: mirror | inventory | sidebar
+========================================================================= */
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  const DEFAULT_PRESET = "dark";
+  const DEFAULT_BLUR = 0;
+
+  function clampBlur(v) {
+    // If v is undefined/null/NaN, return 0 (not DEFAULT_BLUR) to avoid auto-blurring
+    const n = Number.isFinite(v) ? v : 0;
+    return Math.max(0, Math.min(16, n));
+  }
+
+  function ensureSettings() {
+    const sv = State.variables;
+    if (!sv.settings) sv.settings = {};
+    const s = sv.settings;
+
+    if (typeof s.bgSync !== "boolean") s.bgSync = true;
+
+    // global synced settings
+    if (!s.bg) s.bg = {};
+    if (!s.bg.preset) s.bg.preset = DEFAULT_PRESET;
+    // Only clamp if blur is explicitly set (don't default to non-zero)
+    if (Number.isFinite(s.bg.blur)) {
+      s.bg.blur = clampBlur(s.bg.blur);
+    } else {
+      s.bg.blur = 0;
+    }
+
+    // per-area settings
+    if (!s.bgMirror) s.bgMirror = {};
+    if (!s.bgInventory) s.bgInventory = {};
+    if (!s.bgSidebar) s.bgSidebar = {};
+
+    for (const key of ["bgMirror", "bgInventory", "bgSidebar"]) {
+      if (!s[key].preset) s[key].preset = DEFAULT_PRESET;
+      // Only clamp if blur is explicitly set (don't default to non-zero)
+      if (Number.isFinite(s[key].blur)) {
+        s[key].blur = clampBlur(s[key].blur);
+      } else {
+        s[key].blur = 0;
+      }
+    }
+
+    // Backward compat (your existing mirrorBg/mirrorBgBlur)
+    if (s.mirrorBg && !s.bgMirror.preset) s.bgMirror.preset = s.mirrorBg;
+    if (Number.isFinite(s.mirrorBgBlur) && !Number.isFinite(s.bgMirror.blur)) s.bgMirror.blur = clampBlur(s.mirrorBgBlur);
+
+    return s;
+  }
+
+  function getBgConfig(area) {
+    const s = ensureSettings();
+    if (s.bgSync) {
+      return { preset: s.bg.preset, blur: clampBlur(s.bg.blur) };
+    }
+    if (area === "mirror") return { preset: s.bgMirror.preset, blur: clampBlur(s.bgMirror.blur) };
+    if (area === "inventory") return { preset: s.bgInventory.preset, blur: clampBlur(s.bgInventory.blur) };
+    if (area === "sidebar") return { preset: s.bgSidebar.preset, blur: clampBlur(s.bgSidebar.blur) };
+    return { preset: DEFAULT_PRESET, blur: DEFAULT_BLUR };
+  }
+
+  function applyStage(stageEl, area) {
+    if (!stageEl) return;
+    const cfg = getBgConfig(area);
+    stageEl.setAttribute("data-bg", cfg.preset);
+    
+    // Set both blur vars for backward compatibility
+    const blurPx = `${cfg.blur}px`;
+    stageEl.style.setProperty("--stage-bg-blur", blurPx);
+    stageEl.style.setProperty("--mirror-bg-blur", blurPx); // legacy support
+  }
+
+  function notifyChanged() {
+    document.dispatchEvent(new CustomEvent("skycore:backgrounds-changed"));
+  }
+
+  Skycore.Systems.BackgroundThemes = {
+    ensureSettings,
+    getBgConfig,
+    applyStage,
+    notifyChanged
+  };
+})();
+/* twine-user-script #30: "40-back-button.js" */
 /* =========================================================================
    Back Button System
 
@@ -11318,46 +11865,204 @@ $(document).on(':storyinit', function () {
     remove: removeBackButton
   };
 })();
-</script><tw-passagedata pid="1" name="Start" tags="" position="100,100" size="100,100">You wake up with the strange feeling that reality is buffering.
+/* twine-user-script #31: "41-room.js" */
+/* =========================================================================
+   Skycore System: Room Page (Hub)
 
-A mirror glints. A drawer is half-open. Your phone is suspiciously silent.
+   Goals:
+   - Mobile-first, fast, single delegated click handler
+   - Responsive layout:
+       * Mobile: stacked sections
+       * Medium: 2 columns (Personal | Go) + Actions below
+       * Desktop: 3 columns (Personal | Actions | Go)
+   - Only links to implemented pages (Inventory, Mirror).
+     Everything else shows a simple "Not implemented" modal.
 
-&lt;div class=&quot;inv-actions&quot; style=&quot;margin-top: 16px;&quot;&gt;
-	&lt;&lt;link &quot;INVENTORY&quot;&gt;&gt;
-		&lt;&lt;goto &quot;Inventory&quot;&gt;&gt;
-	&lt;&lt;/link&gt;&gt;
+   Usage in Twee:
+     :: Room
+     <<room>>
+========================================================================= */
 
-	&lt;&lt;link &quot;WARDROBE&quot;&gt;&gt;
-		&lt;&lt;goto &quot;Wardrobe&quot;&gt;&gt;
-	&lt;&lt;/link&gt;&gt;
+(function () {
+  "use strict";
 
-	&lt;&lt;link &quot;MC STATS&quot;&gt;&gt;
-		&lt;&lt;goto &quot;MC Stats&quot;&gt;&gt;
-	&lt;&lt;/link&gt;&gt;
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
 
-	&lt;&lt;link &quot;MIRROR&quot;&gt;&gt;
-		&lt;&lt;goto &quot;Mirror&quot;&gt;&gt;
-	&lt;&lt;/link&gt;&gt;
+  // ----------------------------- Data ------------------------------------
 
-	&lt;&lt;link &quot;SETTINGS&quot;&gt;&gt;
-		&lt;&lt;goto &quot;Settings&quot;&gt;&gt;
-	&lt;&lt;/link&gt;&gt;
+  const ROOM_SECTIONS = [
+    {
+      id: "personal",
+      title: "PERSONAL",
+      items: [
+        { label: "INVENTORY", kind: "passage", passage: "Inventory" },
+        { label: "MIRROR", kind: "passage", passage: "Mirror" }
+      ]
+    },
+    {
+      id: "actions",
+      title: "ACTIONS",
+      items: [
+        { label: "STUDY", kind: "todo" },
+        { label: "FAP TIME", kind: "todo" },
+        { label: "USE LAPTOP", kind: "todo" },
+        { label: "PLAY VIDEO GAMES", kind: "todo" },
+        { label: "CLEAN YOUR ROOM", kind: "todo" }
+      ]
+    },
+    {
+      id: "go",
+      title: "GO",
+      items: [
+        { label: "BATHROOM", kind: "todo" },
+        { label: "KITCHEN", kind: "todo" },
+        { label: "LIVING ROOM", kind: "todo" },
+        { label: "LEAVE HOUSE", kind: "todo" }
+      ]
+    },
+    {
+      id: "other",
+      title: "OTHER",
+      items: [
+        { label: "SETTINGS", kind: "passage", passage: "Settings" }
+      ]
+    }
+  ];
 
-	
-&lt;/div&gt;</tw-passagedata><tw-passagedata pid="2" name="Inventory" tags="" position="225,100" size="100,100">&lt;&lt;gridInv&gt;&gt;
+  // --------------------------- Helpers -----------------------------------
 
-&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="3" name="Wardrobe" tags="" position="350,100" size="100,100">You open the wardrobe.
+  function playPassage(name) {
+    if (typeof Engine !== "undefined" && Engine && typeof Engine.play === "function") {
+      Engine.play(name);
+      return;
+    }
+    // Fallback (should not happen in SugarCube)
+    window.location.hash = "#" + encodeURIComponent(name);
+  }
+
+  function showNotImplemented(label) {
+    const modals = Skycore.Systems.InventoryModals;
+    const alertModal = modals && modals.AlertModal;
+
+    if (alertModal && typeof alertModal.open === "function") {
+      alertModal.open({
+        title: "Not implemented yet",
+        message: `"${label}" will be added later.`
+      });
+      return;
+    }
+
+    // Fallback (if Inventory modals are disabled/removed)
+    window.alert(`Not implemented yet: ${label}`);
+  }
+
+  function sectionHTML(section) {
+    const items = section.items
+      .map((it) => {
+        const attrs = [
+          `class="room-link"`,
+          `type="button"`,
+          `data-room-kind="${it.kind}"`,
+          `data-room-label="${encodeURIComponent(it.label)}"`
+        ];
+        if (it.kind === "passage") {
+          attrs.push(`data-room-passage="${encodeURIComponent(it.passage)}"`);
+        }
+        return `<button ${attrs.join(" ")}>${it.label}</button>`;
+      })
+      .join("\n");
+
+    return `
+      <section class="room-section room-section--${section.id}" aria-label="${section.title}">
+        <h3 class="room-section-title">${section.title}</h3>
+        <div class="room-section-links">
+          ${items}
+        </div>
+      </section>
+    `;
+  }
+
+  function roomHTML() {
+    return `
+      <div class="room-page" data-room-root="1">
+        <header class="room-header">
+          <h2 class="room-title">YOUR ROOM</h2>
+          <div class="room-title-rule" aria-hidden="true"></div>
+        </header>
+
+        <figure class="room-image" aria-label="Room image">
+          <img
+            class="room-image-img"
+            src="assets/rooms/bedroom-default.webp"
+            alt="Bedroom"
+            loading="lazy"
+            decoding="async"
+          />
+        </figure>
+
+        <div class="room-grid" aria-label="Room navigation">
+          ${ROOM_SECTIONS.map(sectionHTML).join("\n")}
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------------------------- Macro ------------------------------------
+
+  Macro.add("room", {
+    handler() {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = roomHTML();
+
+      // Single delegated handler for performance.
+      const root = wrap.querySelector("[data-room-root]");
+      if (root) {
+        root.addEventListener(
+          "click",
+          (ev) => {
+            const btn = ev.target && ev.target.closest && ev.target.closest(".room-link");
+            if (!btn || !root.contains(btn)) return;
+
+            const kind = btn.getAttribute("data-room-kind");
+            const label = decodeURIComponent(btn.getAttribute("data-room-label") || "");
+
+            if (kind === "passage") {
+              const passage = decodeURIComponent(btn.getAttribute("data-room-passage") || "");
+              if (passage) playPassage(passage);
+              return;
+            }
+
+            showNotImplemented(label || "This");
+          },
+          { passive: true }
+        );
+      }
+
+      this.output.appendChild(wrap);
+    }
+  });
+
+  Skycore.Systems.Room = {
+    sections: ROOM_SECTIONS
+  };
+})();
+</script><tw-passagedata pid="1" name="Start" tags="" position="100,100" size="100,100">&lt;&lt;goto &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="2" name="Room" tags="" position="225,100" size="100,100">&lt;&lt;room&gt;&gt;</tw-passagedata><tw-passagedata pid="3" name="Inventory" tags="" position="350,100" size="100,100">&lt;&lt;gridInv&gt;&gt;
+
+&lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="4" name="Wardrobe" tags="" position="475,100" size="100,100">You open the wardrobe.
 
 Right now it&#39;s just an ominous void with hangers that look judgmental.
 (Next step: we&#39;ll build the wardrobe UI from `State.variables.invSys.wardrobe`.)
 
-&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="4" name="MC Stats" tags="" position="475,100" size="100,100">&lt;&lt;mcStats&gt;&gt;
+&lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="5" name="MC Stats" tags="" position="600,100" size="100,100">&lt;&lt;mcStats&gt;&gt;
 
-&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="5" name="Mirror" tags="" position="600,100" size="100,100">&lt;div id=&quot;mirrorRoot&quot;&gt;&lt;&lt;mirror&gt;&gt;&lt;/div&gt;
+&lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="Mirror" tags="" position="725,100" size="100,100">&lt;div id=&quot;mirrorRoot&quot;&gt;&lt;&lt;mirror&gt;&gt;&lt;/div&gt;
 
-&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="Settings" tags="" position="725,100" size="100,100">&lt;&lt;settings&gt;&gt;
+&lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="7" name="Settings" tags="" position="850,100" size="100,100">&lt;&lt;settingsHome&gt;&gt;
 
-&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="7" name="NPC Widgets" tags="widget" position="850,100" size="100,100">&lt;&lt;widget &quot;displayNPC&quot;&gt;&gt;
+&lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="Settings - Backgrounds" tags="" position="975,100" size="100,100">&lt;&lt;settingsBackgrounds&gt;&gt;
+
+&lt;&lt;backButton &quot;Settings&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="9" name="NPC Widgets" tags="widget" position="1100,100" size="100,100">&lt;&lt;widget &quot;displayNPC&quot;&gt;&gt;
     &lt;&lt;set _npc = NPC.get(_args[0])&gt;&gt;
     &lt;div class=&quot;npc-profile&quot;&gt;
         &lt;h3&gt;_npc.name&lt;/h3&gt;

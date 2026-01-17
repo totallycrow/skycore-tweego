@@ -23,6 +23,12 @@
       wrap.innerHTML = renderCharacterSidebar();
       this.output.appendChild(wrap);
       
+      // Apply background theme to sidebar character box
+      const sidebarStage = wrap.querySelector('.stage--sidebar');
+      if (sidebarStage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(sidebarStage, "sidebar");
+      }
+      
       // Attach blink to character display
       Skycore.Systems.EyeBlink?.attachAll?.(wrap);
     }
@@ -160,6 +166,23 @@
     
     // Insert after any existing content (below SAVES/RESTART buttons)
     uiBarBody.appendChild(sidebarContainer);
+
+    // Apply background theme to sidebar character box
+    const sidebarStage = sidebarContainer.querySelector('.stage--sidebar');
+    if (sidebarStage && Skycore.Systems.BackgroundThemes) {
+      Skycore.Systems.BackgroundThemes.applyStage(sidebarStage, "sidebar");
+    }
+
+    // Function to refresh sidebar stage background
+    function refreshSidebarStageBackground() {
+      const stage = document.querySelector("#char-sidebar-ui-bar-container .stage--sidebar");
+      if (stage && Skycore.Systems.BackgroundThemes) {
+        Skycore.Systems.BackgroundThemes.applyStage(stage, "sidebar");
+      }
+    }
+
+    // Listen for settings changes
+    document.addEventListener("skycore:backgrounds-changed", refreshSidebarStageBackground);
 
     // Bind event handlers for sidebar buttons
     const sidebarEl = sidebarContainer.querySelector('[data-char-sidebar="1"]');

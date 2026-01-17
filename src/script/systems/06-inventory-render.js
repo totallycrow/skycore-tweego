@@ -397,7 +397,7 @@
 
           <!-- TOP: always 2-column on mobile -->
           <div class="eq-top">
-            <div class="eq-charBox">
+            <div class="eq-charBox stage stage--inventory" data-stage="inventory">
               ${characterPlaceholderSVG()}
             </div>
 

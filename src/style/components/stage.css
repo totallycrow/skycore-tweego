@@ -1,0 +1,69 @@
+/* Generic stage background container (reused by Mirror/Inventory/Sidebar) */
+.stage {
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,0.10);
+  overflow: hidden;
+  position: relative;
+
+  --stage-bg-blur: 0px;
+  --stage-bg: radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.08), rgba(0,0,0,0.55));
+  --stage-bg-size: auto;
+  --stage-bg-pos: center;
+  --stage-bg-repeat: no-repeat;
+
+  /* optional dev transform */
+  --stage-bg-scale: 1;
+  --stage-bg-x: 0%;
+  --stage-bg-y: 0%;
+}
+
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--stage-bg);
+  background-size: var(--stage-bg-size);
+  background-position: var(--stage-bg-pos);
+  background-repeat: var(--stage-bg-repeat);
+
+  filter: blur(var(--stage-bg-blur));
+  transform: scale(calc(var(--stage-bg-scale) * 1.05)) translate(var(--stage-bg-x), var(--stage-bg-y));
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 90% at 50% 10%, rgba(0,0,0,0.10), rgba(0,0,0,0.55));
+  pointer-events: none;
+}
+
+.stage > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Presets (same IDs used everywhere) */
+.stage[data-bg="dark"] {
+  --stage-bg: radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,0.08), rgba(0,0,0,0.55));
+}
+
+.stage[data-bg="pink"] {
+  --stage-bg: radial-gradient(140% 120% at 40% 0%, rgba(255,140,200,0.18), rgba(20,10,20,0.90));
+}
+
+.stage[data-bg="bedroom"] {
+  --stage-bg: url("assets/rooms/bedroom-default.webp");
+  --stage-bg-size: cover;
+  --stage-bg-pos: center;
+  --stage-bg-repeat: no-repeat;
+}
+
+.stage[data-bg="bedroom-vertical"] {
+  --stage-bg: url("assets/rooms/bedroom-vertical.webp");
+  --stage-bg-size: cover;
+  --stage-bg-pos: center;
+  --stage-bg-repeat: no-repeat;
+}
