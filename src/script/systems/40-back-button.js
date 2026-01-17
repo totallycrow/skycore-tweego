@@ -142,14 +142,48 @@
     backdrop.appendChild(button);
     container.appendChild(backdrop);
 
+    // Hide button initially to prevent visible jump
+    backdrop.style.opacity = '0';
+    backdrop.style.visibility = 'hidden';
+
     // Add to page
     document.body.appendChild(container);
 
-    // Update position based on UI bar state
-    // Use requestAnimationFrame to ensure DOM is fully ready
-    requestAnimationFrame(function() {
+    // Calculate position before showing button
+    // Use multiple attempts to ensure accurate positioning
+    let attempts = 0;
+    const maxAttempts = 10; // Prevent infinite loop
+    
+    function positionAndShow() {
       updateButtonPosition(container);
+      attempts++;
+      
+      // Check if story element exists and has valid dimensions
+      const story = document.getElementById('story');
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      
+      if (isMobile || (story && story.getBoundingClientRect().width > 0) || attempts >= maxAttempts) {
+        // Position is valid or max attempts reached, show the button
+        backdrop.style.opacity = '1';
+        backdrop.style.visibility = 'visible';
+      } else {
+        // Story element not ready yet, try again
+        requestAnimationFrame(positionAndShow);
+      }
+    }
+
+    // Start positioning process
+    requestAnimationFrame(function() {
+      requestAnimationFrame(positionAndShow);
     });
+    
+    // Fallback: ensure button is visible after reasonable delay even if checks fail
+    setTimeout(function() {
+      if (backdrop.style.opacity === '0') {
+        backdrop.style.opacity = '1';
+        backdrop.style.visibility = 'visible';
+      }
+    }, 500);
 
     // Listen for UI bar state changes and inventory panel position changes
     const uiBar = document.getElementById('ui-bar');
@@ -216,6 +250,51 @@
   // The new passage will add it back if needed via the macro
   $(document).on(':passagestart', function() {
     removeBackButton();
+  });
+
+  // Update back button position after passage is rendered (including after save load)
+  // This ensures the button is correctly positioned on desktop when returning to the game
+  $(document).on(':passageend', function() {
+    const container = document.querySelector('.back-button-container');
+    if (container) {
+      const backdrop = container.querySelector('.back-button-backdrop');
+      if (backdrop) {
+        // Hide during repositioning to prevent visible jump
+        const wasVisible = backdrop.style.opacity !== '0';
+        if (wasVisible) {
+          backdrop.style.opacity = '0';
+        }
+        
+        // Update position after UI bar and story element are positioned
+        // Use multiple attempts to ensure accurate positioning
+        function updateAndShow() {
+          updateButtonPosition(container);
+          
+          const story = document.getElementById('story');
+          const isMobile = window.matchMedia('(max-width: 768px)').matches;
+          
+          if (isMobile || (story && story.getBoundingClientRect().width > 0)) {
+            // Position is valid, show the button if it was visible before
+            if (wasVisible) {
+              backdrop.style.opacity = '1';
+            }
+          } else {
+            // Story element not ready yet, try again
+            requestAnimationFrame(updateAndShow);
+          }
+        }
+        
+        // First attempt after initial render
+        setTimeout(function() {
+          requestAnimationFrame(updateAndShow);
+        }, 50);
+        
+        // Second attempt after CSS transitions (UI bar animation)
+        setTimeout(function() {
+          requestAnimationFrame(updateAndShow);
+        }, 300);
+      }
+    }
   });
 
   // ---- Public API ----------------------------------------------------------

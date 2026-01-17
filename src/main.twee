@@ -53,3 +53,15 @@ Right now it's just an ominous void with hangers that look judgmental.
 <<settingsBackgrounds>>
 
 <<backButton "Settings">>
+
+
+:: City
+<<city>>
+
+<<backButton "Room">>
+
+
+:: Shopping Mall
+<<shoppingMall>>
+
+<<backButton "City">>

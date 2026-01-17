@@ -194,9 +194,31 @@
     Skycore.Systems.EyeBlink?.attachAll?.(sidebarContainer);
   }
 
+  /**
+   * Update sidebar character display after save load or passage change
+   * Ensures sidebar stays in sync with equipment state
+   */
+  function updateSidebarAfterLoad() {
+    // Invalidate presentation state cache to ensure fresh data
+    if (Skycore.Systems.PresentationState && Skycore.Systems.PresentationState.invalidate) {
+      Skycore.Systems.PresentationState.invalidate();
+    }
+    
+    // Update all character sidebars on the page
+    if (Skycore.Systems.CharacterSidebar && Skycore.Systems.CharacterSidebar.updateAll) {
+      Skycore.Systems.CharacterSidebar.updateAll();
+    }
+  }
+
   // Close sidebar on passage navigation (mobile only)
   $(document).on(":passagestart", function() {
     closeSidebarOnNavigation();
+  });
+
+  // Update sidebar after passage is rendered (including after save load)
+  $(document).on(":passageend", function() {
+    // Small delay to ensure state is fully loaded
+    setTimeout(updateSidebarAfterLoad, 50);
   });
 
   // Initialize when DOM is ready - wait for story initialization

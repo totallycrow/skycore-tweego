@@ -1,5 +1,6 @@
-/* During Development: Prevent SugarCube from loading old saves on refresh */
-Config.saves.autoload = false; 
+/* Save Configuration: Enable autosave and autoload */
+Config.saves.autosave = true;  // Enable automatic saving
+Config.saves.autoload = true;  // Automatically load saves on page refresh
 Config.history.controls = true; // Helpful for debugging
 
 /* UI Configuration - Static (does not go into saves) */

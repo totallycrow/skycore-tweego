@@ -50,7 +50,7 @@
         { label: "BATHROOM", kind: "todo" },
         { label: "KITCHEN", kind: "todo" },
         { label: "LIVING ROOM", kind: "todo" },
-        { label: "LEAVE HOUSE", kind: "todo" }
+        { label: "LEAVE HOUSE", kind: "passage", passage: "City" }
       ]
     },
     {

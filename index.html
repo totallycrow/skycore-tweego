@@ -631,7 +631,165 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
     margin-bottom: 0;
   }
 }
-/* twine-user-stylesheet #3: "inventory.css" */
+/* twine-user-stylesheet #3: "city.css" */
+/* =========================================================================
+   City Page (Hub)
+   Mobile-first responsive layout.
+
+   Breakpoints:
+   - Base: stacked
+   - >= 768px: 2 columns
+   - >= 1024px: 3 columns
+========================================================================= */
+
+.city-page {
+  /* Hard stop horizontal scroll on mobile */
+  max-width: 100%;
+  overflow-x: clip; /* stronger than hidden for layout; safe modern browsers */
+  box-sizing: border-box;
+
+  /* Comfortable padding; keep bottom space for fixed back button (if any) */
+  padding: 18px 14px 28px;
+  margin: 0 auto;
+  width: min(980px, 100%);
+
+  /* Subtle dotted paper background (scoped to this page only) */
+  position: relative;
+}
+
+.city-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 18px 18px;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.city-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.city-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.city-title {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.city-title-rule {
+  width: 160px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.65);
+  margin: 8px auto 0;
+  border-radius: 999px;
+}
+
+.city-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+  justify-items: stretch; /* Stretch items so they don't compute "wider than container" */
+}
+
+.city-section {
+  width: 100%; /* Fit the grid column width */
+  max-width: 360px; /* Preserve intended visual width cap */
+  text-align: center;
+}
+
+.city-section-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.city-section-links {
+  display: grid;
+  gap: 8px;
+}
+
+.city-link {
+  /* Match modal button styles (.inv-btn) */
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.city-link:active {
+  transform: translateY(1px);
+}
+
+.city-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.city-link:focus:not(:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+.city-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Medium screens: 2 columns */
+@media (min-width: 768px) {
+  .city-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    justify-items: stretch;
+  }
+
+  .city-section {
+    width: 100%;
+  }
+}
+
+/* Desktop/wide: 3 columns */
+@media (min-width: 1024px) {
+  .city-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* Mobile cursor fix (prevent blue highlight on Chrome) */
+@media (hover: none) and (pointer: coarse) {
+  .city-link {
+    cursor: default;
+  }
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .city-link:active {
+    transform: none;
+  }
+}
+/* twine-user-stylesheet #4: "inventory.css" */
 /* === Inventory / Equipment Grid UI (mobile-first) === */
 
 :root {
@@ -2141,7 +2299,7 @@ body.inv-dragging .inv-ward-slot {
     padding-right: 6px;
   }
 }
-/* twine-user-stylesheet #4: "mirror.css" */
+/* twine-user-stylesheet #5: "mirror.css" */
 /* =========================================================================
    Mirror Page Layout (mobile-first)
    - 1/2: full-body character
@@ -2251,7 +2409,7 @@ body.inv-dragging .inv-ward-slot {
     rgba(10,15,25,0.92)
   );
 }
-/* twine-user-stylesheet #5: "room.css" */
+/* twine-user-stylesheet #6: "room.css" */
 /* =========================================================================
    Room Page (Hub)
    Mobile-first responsive layout.
@@ -2442,7 +2600,7 @@ body.inv-dragging .inv-ward-slot {
     transform: none;
   }
 }
-/* twine-user-stylesheet #6: "settings.css" */
+/* twine-user-stylesheet #7: "settings.css" */
 .settings-page {
   max-width: 900px;
   margin: 0 auto;
@@ -2577,7 +2735,165 @@ body.inv-dragging .inv-ward-slot {
   opacity: 0.85;
   font-weight: 600;
 }
-/* twine-user-stylesheet #7: "stage.css" */
+/* twine-user-stylesheet #8: "shopping-mall.css" */
+/* =========================================================================
+   Shopping Mall Page
+   Mobile-first responsive layout.
+
+   Breakpoints:
+   - Base: stacked
+   - >= 768px: 2 columns
+   - >= 1024px: 3 columns
+========================================================================= */
+
+.shopping-mall-page {
+  /* Hard stop horizontal scroll on mobile */
+  max-width: 100%;
+  overflow-x: clip; /* stronger than hidden for layout; safe modern browsers */
+  box-sizing: border-box;
+
+  /* Comfortable padding; keep bottom space for fixed back button (if any) */
+  padding: 18px 14px 28px;
+  margin: 0 auto;
+  width: min(980px, 100%);
+
+  /* Subtle dotted paper background (scoped to this page only) */
+  position: relative;
+}
+
+.shopping-mall-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 18px 18px;
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.shopping-mall-page > * {
+  position: relative;
+  z-index: 1;
+}
+
+.shopping-mall-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.shopping-mall-title {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shopping-mall-title-rule {
+  width: 160px;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.65);
+  margin: 8px auto 0;
+  border-radius: 999px;
+}
+
+.shopping-mall-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+  justify-items: stretch; /* Stretch items so they don't compute "wider than container" */
+}
+
+.shopping-mall-section {
+  width: 100%; /* Fit the grid column width */
+  max-width: 360px; /* Preserve intended visual width cap */
+  text-align: center;
+}
+
+.shopping-mall-section-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.shopping-mall-section-links {
+  display: grid;
+  gap: 8px;
+}
+
+.shopping-mall-link {
+  /* Match modal button styles (.inv-btn) */
+  width: 100%;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.shopping-mall-link:active {
+  transform: translateY(1px);
+}
+
+.shopping-mall-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.shopping-mall-link:focus:not(:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+.shopping-mall-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+/* Medium screens: 2 columns */
+@media (min-width: 768px) {
+  .shopping-mall-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    justify-items: stretch;
+  }
+
+  .shopping-mall-section {
+    width: 100%;
+  }
+}
+
+/* Desktop/wide: 3 columns */
+@media (min-width: 1024px) {
+  .shopping-mall-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* Mobile cursor fix (prevent blue highlight on Chrome) */
+@media (hover: none) and (pointer: coarse) {
+  .shopping-mall-link {
+    cursor: default;
+  }
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .shopping-mall-link:active {
+    transform: none;
+  }
+}
+/* twine-user-stylesheet #9: "stage.css" */
 /* Generic stage background container (reused by Mirror/Inventory/Sidebar) */
 .stage {
   border-radius: 22px;
@@ -2647,7 +2963,7 @@ body.inv-dragging .inv-ward-slot {
   --stage-bg-pos: center;
   --stage-bg-repeat: no-repeat;
 }
-/* twine-user-stylesheet #8: "stats.css" */
+/* twine-user-stylesheet #10: "stats.css" */
 /* === MC Sheet v1: Stats Display (mobile-first) === */
 
 .mc-stats-container {
@@ -2803,8 +3119,8 @@ body.inv-dragging .inv-ward-slot {
   color: rgba(255, 100, 100, 0.9);
   font-weight: 600;
 }
-/* twine-user-stylesheet #9: "desktop.css" */
-/* twine-user-stylesheet #10: "globals.css" */
+/* twine-user-stylesheet #11: "desktop.css" */
+/* twine-user-stylesheet #12: "globals.css" */
 .npc-profile {
   border: 1px solid #444;
   padding: 15px;
@@ -3964,8 +4280,9 @@ body.modal-open {
   };
 })();
 /* twine-user-script #4: "init.js" */
-/* During Development: Prevent SugarCube from loading old saves on refresh */
-Config.saves.autoload = false; 
+/* Save Configuration: Enable autosave and autoload */
+Config.saves.autosave = true;  // Enable automatic saving
+Config.saves.autoload = true;  // Automatically load saves on page refresh
 Config.history.controls = true; // Helpful for debugging
 
 /* UI Configuration - Static (does not go into saves) */
@@ -10946,9 +11263,31 @@ $(document).on(':storyinit', function () {
     Skycore.Systems.EyeBlink?.attachAll?.(sidebarContainer);
   }
 
+  /**
+   * Update sidebar character display after save load or passage change
+   * Ensures sidebar stays in sync with equipment state
+   */
+  function updateSidebarAfterLoad() {
+    // Invalidate presentation state cache to ensure fresh data
+    if (Skycore.Systems.PresentationState && Skycore.Systems.PresentationState.invalidate) {
+      Skycore.Systems.PresentationState.invalidate();
+    }
+    
+    // Update all character sidebars on the page
+    if (Skycore.Systems.CharacterSidebar && Skycore.Systems.CharacterSidebar.updateAll) {
+      Skycore.Systems.CharacterSidebar.updateAll();
+    }
+  }
+
   // Close sidebar on passage navigation (mobile only)
   $(document).on(":passagestart", function() {
     closeSidebarOnNavigation();
+  });
+
+  // Update sidebar after passage is rendered (including after save load)
+  $(document).on(":passageend", function() {
+    // Small delay to ensure state is fully loaded
+    setTimeout(updateSidebarAfterLoad, 50);
   });
 
   // Initialize when DOM is ready - wait for story initialization
@@ -12202,7 +12541,137 @@ $(document).on(':storyinit', function () {
     notifyChanged
   };
 })();
-/* twine-user-script #35: "40-back-button.js" */
+/* twine-user-script #35: "39-new-game-button.js" */
+/* =========================================================================
+   New Game Button: Adds a "New Game" button to the UI bar
+   
+   Inserts a button at the top of the UI bar (above SAVES/RESTART buttons)
+   that resets the game to a fresh state.
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  /**
+   * Initialize New Game button in SugarCube UI bar
+   * Called when DOM is ready
+   */
+  function initNewGameButton() {
+    // Wait for UI bar to be available
+    const uiBarBody = document.getElementById('ui-bar-body');
+    if (!uiBarBody) {
+      // Try again after a short delay if UI bar isn't ready yet
+      setTimeout(initNewGameButton, 100);
+      return;
+    }
+
+    // Check if button already exists
+    if (uiBarBody.querySelector('[data-new-game-button="1"]')) {
+      return;
+    }
+
+    // Create button container
+    const buttonContainer = document.createElement("div");
+    buttonContainer.setAttribute("data-new-game-button", "1");
+    buttonContainer.style.marginBottom = "1em";
+    buttonContainer.style.paddingBottom = "1em";
+    buttonContainer.style.borderBottom = "1px solid rgba(255, 255, 255, 0.1)";
+
+    // Create button
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ui-bar-button";
+    button.textContent = "NEW GAME";
+    button.style.cssText = `
+      width: 100%;
+      padding: 0.75em 1em;
+      margin: 0;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9em;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    `;
+
+    // Add hover styles
+    button.addEventListener('mouseenter', function() {
+      button.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+      button.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+    });
+
+    button.addEventListener('mouseleave', function() {
+      button.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+      button.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+    });
+
+    // Add click handler
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Confirm with user
+      if (confirm('Start a new game? This will reset all progress and clear saves.')) {
+        // Clear persistent storage (saves are stored here)
+        if (typeof storage !== 'undefined' && storage.clear) {
+          try {
+            storage.clear();
+          } catch (err) {
+            console.warn('Could not clear storage:', err);
+          }
+        }
+        
+        // Reset game state using Engine.restart()
+        // This fully resets the game to initial state and clears all saves
+        if (typeof Engine !== 'undefined') {
+          if (typeof Engine.restart === 'function') {
+            Engine.restart();
+          } else {
+            // Fallback: clear history and navigate to Start passage
+            if (typeof History !== 'undefined' && History.clear) {
+              History.clear();
+            }
+            if (Engine.play) {
+              Engine.play("Start");
+            }
+          }
+        }
+      }
+    });
+
+    // Assemble
+    buttonContainer.appendChild(button);
+    
+    // Insert at the beginning of ui-bar-body (before SAVES/RESTART buttons)
+    uiBarBody.insertBefore(buttonContainer, uiBarBody.firstChild);
+  }
+
+  // Initialize when DOM is ready
+  $(document).one(":storyready", function() {
+    setTimeout(initNewGameButton, 50);
+  });
+
+  // Also try on DOMContentLoaded as fallback
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function() {
+      setTimeout(initNewGameButton, 150);
+    });
+  } else {
+    // DOM already loaded, try immediately but with delay
+    setTimeout(initNewGameButton, 150);
+  }
+
+  Skycore.Systems.NewGameButton = {
+    init: initNewGameButton
+  };
+})();
+/* twine-user-script #36: "40-back-button.js" */
 /* =========================================================================
    Back Button System
 
@@ -12347,14 +12816,48 @@ $(document).on(':storyinit', function () {
     backdrop.appendChild(button);
     container.appendChild(backdrop);
 
+    // Hide button initially to prevent visible jump
+    backdrop.style.opacity = '0';
+    backdrop.style.visibility = 'hidden';
+
     // Add to page
     document.body.appendChild(container);
 
-    // Update position based on UI bar state
-    // Use requestAnimationFrame to ensure DOM is fully ready
-    requestAnimationFrame(function() {
+    // Calculate position before showing button
+    // Use multiple attempts to ensure accurate positioning
+    let attempts = 0;
+    const maxAttempts = 10; // Prevent infinite loop
+    
+    function positionAndShow() {
       updateButtonPosition(container);
+      attempts++;
+      
+      // Check if story element exists and has valid dimensions
+      const story = document.getElementById('story');
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      
+      if (isMobile || (story && story.getBoundingClientRect().width > 0) || attempts >= maxAttempts) {
+        // Position is valid or max attempts reached, show the button
+        backdrop.style.opacity = '1';
+        backdrop.style.visibility = 'visible';
+      } else {
+        // Story element not ready yet, try again
+        requestAnimationFrame(positionAndShow);
+      }
+    }
+
+    // Start positioning process
+    requestAnimationFrame(function() {
+      requestAnimationFrame(positionAndShow);
     });
+    
+    // Fallback: ensure button is visible after reasonable delay even if checks fail
+    setTimeout(function() {
+      if (backdrop.style.opacity === '0') {
+        backdrop.style.opacity = '1';
+        backdrop.style.visibility = 'visible';
+      }
+    }, 500);
 
     // Listen for UI bar state changes and inventory panel position changes
     const uiBar = document.getElementById('ui-bar');
@@ -12423,6 +12926,51 @@ $(document).on(':storyinit', function () {
     removeBackButton();
   });
 
+  // Update back button position after passage is rendered (including after save load)
+  // This ensures the button is correctly positioned on desktop when returning to the game
+  $(document).on(':passageend', function() {
+    const container = document.querySelector('.back-button-container');
+    if (container) {
+      const backdrop = container.querySelector('.back-button-backdrop');
+      if (backdrop) {
+        // Hide during repositioning to prevent visible jump
+        const wasVisible = backdrop.style.opacity !== '0';
+        if (wasVisible) {
+          backdrop.style.opacity = '0';
+        }
+        
+        // Update position after UI bar and story element are positioned
+        // Use multiple attempts to ensure accurate positioning
+        function updateAndShow() {
+          updateButtonPosition(container);
+          
+          const story = document.getElementById('story');
+          const isMobile = window.matchMedia('(max-width: 768px)').matches;
+          
+          if (isMobile || (story && story.getBoundingClientRect().width > 0)) {
+            // Position is valid, show the button if it was visible before
+            if (wasVisible) {
+              backdrop.style.opacity = '1';
+            }
+          } else {
+            // Story element not ready yet, try again
+            requestAnimationFrame(updateAndShow);
+          }
+        }
+        
+        // First attempt after initial render
+        setTimeout(function() {
+          requestAnimationFrame(updateAndShow);
+        }, 50);
+        
+        // Second attempt after CSS transitions (UI bar animation)
+        setTimeout(function() {
+          requestAnimationFrame(updateAndShow);
+        }, 300);
+      }
+    }
+  });
+
   // ---- Public API ----------------------------------------------------------
 
   Skycore.Systems.BackButton = {
@@ -12430,7 +12978,7 @@ $(document).on(':storyinit', function () {
     remove: removeBackButton
   };
 })();
-/* twine-user-script #36: "41-room.js" */
+/* twine-user-script #37: "41-room.js" */
 /* =========================================================================
    Skycore System: Room Page (Hub)
 
@@ -12483,7 +13031,7 @@ $(document).on(':storyinit', function () {
         { label: "BATHROOM", kind: "todo" },
         { label: "KITCHEN", kind: "todo" },
         { label: "LIVING ROOM", kind: "todo" },
-        { label: "LEAVE HOUSE", kind: "todo" }
+        { label: "LEAVE HOUSE", kind: "passage", passage: "City" }
       ]
     },
     {
@@ -12612,6 +13160,288 @@ $(document).on(':storyinit', function () {
     sections: ROOM_SECTIONS
   };
 })();
+/* twine-user-script #38: "42-city.js" */
+/* =========================================================================
+   Skycore System: City Page (Hub)
+
+   Goals:
+   - Mobile-first, fast, single delegated click handler
+   - Responsive layout similar to Room page
+   - Links to implemented pages (Shopping Mall).
+     Everything else shows a simple "Not implemented" modal.
+
+   Usage in Twee:
+     :: City
+     <<city>>
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  // ----------------------------- Data ------------------------------------
+
+  const CITY_SECTIONS = [
+    {
+      id: "locations",
+      title: "LOCATIONS",
+      items: [
+        { label: "UNIVERSITY", kind: "todo" },
+        { label: "SHOPPING MALL", kind: "passage", passage: "Shopping Mall" },
+        { label: "PUB", kind: "todo" }
+      ]
+    }
+  ];
+
+  // --------------------------- Helpers -----------------------------------
+
+  function playPassage(name) {
+    if (typeof Engine !== "undefined" && Engine && typeof Engine.play === "function") {
+      Engine.play(name);
+      return;
+    }
+    // Fallback (should not happen in SugarCube)
+    window.location.hash = "#" + encodeURIComponent(name);
+  }
+
+  function showNotImplemented(label) {
+    const modals = Skycore.Systems.InventoryModals;
+    const alertModal = modals && modals.AlertModal;
+
+    if (alertModal && typeof alertModal.open === "function") {
+      alertModal.open({
+        title: "Not implemented yet",
+        message: `"${label}" will be added later.`
+      });
+      return;
+    }
+
+    // Fallback (if Inventory modals are disabled/removed)
+    window.alert(`Not implemented yet: ${label}`);
+  }
+
+  function sectionHTML(section) {
+    const items = section.items
+      .map((it) => {
+        const attrs = [
+          `class="city-link"`,
+          `type="button"`,
+          `data-city-kind="${it.kind}"`,
+          `data-city-label="${encodeURIComponent(it.label)}"`
+        ];
+        if (it.kind === "passage") {
+          attrs.push(`data-city-passage="${encodeURIComponent(it.passage)}"`);
+        }
+        return `<button ${attrs.join(" ")}>${it.label}</button>`;
+      })
+      .join("\n");
+
+    return `
+      <section class="city-section city-section--${section.id}" aria-label="${section.title}">
+        <h3 class="city-section-title">${section.title}</h3>
+        <div class="city-section-links">
+          ${items}
+        </div>
+      </section>
+    `;
+  }
+
+  function cityHTML() {
+    return `
+      <div class="city-page" data-city-root="1">
+        <header class="city-header">
+          <h2 class="city-title">CITY</h2>
+          <div class="city-title-rule" aria-hidden="true"></div>
+        </header>
+
+        <div class="city-grid" aria-label="City navigation">
+          ${CITY_SECTIONS.map(sectionHTML).join("\n")}
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------------------------- Macro ------------------------------------
+
+  Macro.add("city", {
+    handler() {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = cityHTML();
+
+      // Single delegated handler for performance.
+      const root = wrap.querySelector("[data-city-root]");
+      if (root) {
+        root.addEventListener(
+          "click",
+          (ev) => {
+            const btn = ev.target && ev.target.closest && ev.target.closest(".city-link");
+            if (!btn || !root.contains(btn)) return;
+
+            const kind = btn.getAttribute("data-city-kind");
+            const label = decodeURIComponent(btn.getAttribute("data-city-label") || "");
+
+            if (kind === "passage") {
+              const passage = decodeURIComponent(btn.getAttribute("data-city-passage") || "");
+              if (passage) playPassage(passage);
+              return;
+            }
+
+            showNotImplemented(label || "This");
+          },
+          { passive: true }
+        );
+      }
+
+      this.output.appendChild(wrap);
+    }
+  });
+
+  Skycore.Systems.City = {
+    sections: CITY_SECTIONS
+  };
+})();
+/* twine-user-script #39: "43-shopping-mall.js" */
+/* =========================================================================
+   Skycore System: Shopping Mall Page
+
+   Goals:
+   - Mobile-first, fast, single delegated click handler
+   - Responsive layout similar to Room/City pages
+   - Links to implemented shops.
+     Everything else shows a simple "Not implemented" modal.
+
+   Usage in Twee:
+     :: Shopping Mall
+     <<shoppingMall>>
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  // ----------------------------- Data ------------------------------------
+
+  const SHOPPING_MALL_SECTIONS = [
+    {
+      id: "shops",
+      title: "SHOPS",
+      items: [
+        { label: "TEST SHOP", kind: "todo" }
+      ]
+    }
+  ];
+
+  // --------------------------- Helpers -----------------------------------
+
+  function playPassage(name) {
+    if (typeof Engine !== "undefined" && Engine && typeof Engine.play === "function") {
+      Engine.play(name);
+      return;
+    }
+    // Fallback (should not happen in SugarCube)
+    window.location.hash = "#" + encodeURIComponent(name);
+  }
+
+  function showNotImplemented(label) {
+    const modals = Skycore.Systems.InventoryModals;
+    const alertModal = modals && modals.AlertModal;
+
+    if (alertModal && typeof alertModal.open === "function") {
+      alertModal.open({
+        title: "Not implemented yet",
+        message: `"${label}" will be added later.`
+      });
+      return;
+    }
+
+    // Fallback (if Inventory modals are disabled/removed)
+    window.alert(`Not implemented yet: ${label}`);
+  }
+
+  function sectionHTML(section) {
+    const items = section.items
+      .map((it) => {
+        const attrs = [
+          `class="shopping-mall-link"`,
+          `type="button"`,
+          `data-shopping-mall-kind="${it.kind}"`,
+          `data-shopping-mall-label="${encodeURIComponent(it.label)}"`
+        ];
+        if (it.kind === "passage") {
+          attrs.push(`data-shopping-mall-passage="${encodeURIComponent(it.passage)}"`);
+        }
+        return `<button ${attrs.join(" ")}>${it.label}</button>`;
+      })
+      .join("\n");
+
+    return `
+      <section class="shopping-mall-section shopping-mall-section--${section.id}" aria-label="${section.title}">
+        <h3 class="shopping-mall-section-title">${section.title}</h3>
+        <div class="shopping-mall-section-links">
+          ${items}
+        </div>
+      </section>
+    `;
+  }
+
+  function shoppingMallHTML() {
+    return `
+      <div class="shopping-mall-page" data-shopping-mall-root="1">
+        <header class="shopping-mall-header">
+          <h2 class="shopping-mall-title">SHOPPING MALL</h2>
+          <div class="shopping-mall-title-rule" aria-hidden="true"></div>
+        </header>
+
+        <div class="shopping-mall-grid" aria-label="Shopping Mall navigation">
+          ${SHOPPING_MALL_SECTIONS.map(sectionHTML).join("\n")}
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------------------------- Macro ------------------------------------
+
+  Macro.add("shoppingMall", {
+    handler() {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = shoppingMallHTML();
+
+      // Single delegated handler for performance.
+      const root = wrap.querySelector("[data-shopping-mall-root]");
+      if (root) {
+        root.addEventListener(
+          "click",
+          (ev) => {
+            const btn = ev.target && ev.target.closest && ev.target.closest(".shopping-mall-link");
+            if (!btn || !root.contains(btn)) return;
+
+            const kind = btn.getAttribute("data-shopping-mall-kind");
+            const label = decodeURIComponent(btn.getAttribute("data-shopping-mall-label") || "");
+
+            if (kind === "passage") {
+              const passage = decodeURIComponent(btn.getAttribute("data-shopping-mall-passage") || "");
+              if (passage) playPassage(passage);
+              return;
+            }
+
+            showNotImplemented(label || "This");
+          },
+          { passive: true }
+        );
+      }
+
+      this.output.appendChild(wrap);
+    }
+  });
+
+  Skycore.Systems.ShoppingMall = {
+    sections: SHOPPING_MALL_SECTIONS
+  };
+})();
 </script><tw-passagedata pid="1" name="Start" tags="" position="100,100" size="100,100">&lt;&lt;goto &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="2" name="Room" tags="" position="225,100" size="100,100">&lt;&lt;room&gt;&gt;</tw-passagedata><tw-passagedata pid="3" name="Inventory" tags="" position="350,100" size="100,100">&lt;&lt;gridInv&gt;&gt;
 
 &lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="4" name="Wardrobe" tags="" position="475,100" size="100,100">You open the wardrobe.
@@ -12627,7 +13457,11 @@ Right now it&#39;s just an ominous void with hangers that look judgmental.
 
 &lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="8" name="Settings - Backgrounds" tags="" position="975,100" size="100,100">&lt;&lt;settingsBackgrounds&gt;&gt;
 
-&lt;&lt;backButton &quot;Settings&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="9" name="NPC Widgets" tags="widget" position="1100,100" size="100,100">&lt;&lt;widget &quot;displayNPC&quot;&gt;&gt;
+&lt;&lt;backButton &quot;Settings&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="9" name="City" tags="" position="1100,100" size="100,100">&lt;&lt;city&gt;&gt;
+
+&lt;&lt;backButton &quot;Room&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="10" name="Shopping Mall" tags="" position="1225,100" size="100,100">&lt;&lt;shoppingMall&gt;&gt;
+
+&lt;&lt;backButton &quot;City&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="11" name="NPC Widgets" tags="widget" position="100,225" size="100,100">&lt;&lt;widget &quot;displayNPC&quot;&gt;&gt;
     &lt;&lt;set _npc = NPC.get(_args[0])&gt;&gt;
     &lt;div class=&quot;npc-profile&quot;&gt;
         &lt;h3&gt;_npc.name&lt;/h3&gt;
