@@ -395,7 +395,7 @@
       const wardrobe = State.variables.invSys.wardrobe;
 
       const fromArr = getAreaArray(drag.fromArea);
-      const toArr = getAreaArray(toArea);
+      let toArr = getAreaArray(toArea);
 
       const fromItem = fromArr[drag.fromIndex];
       const toItem = toArr[toIndex];
