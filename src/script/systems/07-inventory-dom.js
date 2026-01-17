@@ -26,16 +26,45 @@
     // Update filter visibility
     // Equipped items are NEVER filtered - always visible
     // Empty slots always match (always visible)
-    // Inventory and wardrobe items are filtered - hide item icon if doesn't match
-    const shouldShowItem = (area === "eq") ? true : (!itemId || !filter || matchesFilter(itemId, filter));
+    // Inventory and wardrobe items are filtered - show icon but dimmed if doesn't match
+    const hasItem = !!itemId;
+    const filterActive = filter && (
+      (Array.isArray(filter.category) && filter.category.length > 0) ||
+      (Array.isArray(filter.type) && filter.type.length > 0) ||
+      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    );
+    
+    const isFilteredOut = 
+      area !== "eq" &&
+      hasItem &&
+      filterActive &&
+      !matchesFilter(itemId, filter);
     
     slotEl.dataset.item = itemId || "";
     slotEl.classList.toggle("is-filled", !!item);
-    slotEl.classList.toggle("inv-item-hidden", !!item && !shouldShowItem);
+    slotEl.classList.toggle("is-filtered-out", isFilteredOut);
     
-    // Update item icon
+    // Set data-filter-hidden attribute for drag/drop checks and disable interaction
+    // Only disable slots that contain items that don't match filter
+    // Empty slots remain interactive so users can move items between areas
+    if (!hasItem) {
+      slotEl.removeAttribute("data-filter-hidden");
+      slotEl.removeAttribute("aria-disabled");
+      slotEl.classList.remove("is-filtered-out");
+    } else if (isFilteredOut) {
+      slotEl.setAttribute("data-filter-hidden", "1");
+      slotEl.setAttribute("aria-disabled", "true");
+      slotEl.classList.add("is-filtered-out");
+    } else {
+      slotEl.removeAttribute("data-filter-hidden");
+      slotEl.removeAttribute("aria-disabled");
+      slotEl.classList.remove("is-filtered-out");
+    }
+    
+    // IMPORTANT: keep icon visible even when filtered out, so slot doesn't look empty
+    // This prevents UX confusion where filtered-out items appear empty but block bulk moves
     const itemEl = slotEl.querySelector(".inv-item");
-    if (item && shouldShowItem) {
+    if (item) {
       if (itemEl) {
         itemEl.textContent = item.icon;
       } else {

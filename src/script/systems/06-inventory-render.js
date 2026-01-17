@@ -56,20 +56,34 @@
     const item = getItem(itemId);
     const filled = item ? "is-filled" : "";
     const label = item ? `${item.name}` : "Empty slot";
-    // Always render all slots - never hide the slot itself
-    // For inventory/wardrobe: if item doesn't match filter, don't show the item icon
-    // For equipped: always show items (never filtered)
-    const showItem = (area === "eq") ? !!item : (matchesFilter && !!item);
-    const itemHiddenClass = (item && !showItem) ? " inv-item-hidden" : "";
+    
+    // Determine if item is filtered out
+    const hasItem = !!itemId;
+    const filterActive = filter && (
+      (Array.isArray(filter.category) && filter.category.length > 0) ||
+      (Array.isArray(filter.type) && filter.type.length > 0) ||
+      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    );
+    
+    const isFilteredOut = 
+      area !== "eq" &&
+      hasItem &&
+      filterActive &&
+      !matchesFilter;
+    
+    const filteredOutClass = isFilteredOut ? " is-filtered-out" : "";
+    const filterHiddenAttr = isFilteredOut ? ' data-filter-hidden="1" aria-disabled="true"' : "";
 
+    // IMPORTANT: always show icon when item exists, even if filtered out
+    // This prevents UX confusion where filtered-out items appear empty but block bulk moves
     return `
       <button type="button"
-              class="inv-slot ${filled}${itemHiddenClass}"
+              class="inv-slot ${filled}${filteredOutClass}"
               data-area="${area}"
               data-index="${index}"
               data-item="${itemId || ""}"
-              aria-label="${label}">
-        ${showItem ? `<span class="inv-item" aria-hidden="true">${item.icon}</span>` : ""}
+              aria-label="${label}"${filterHiddenAttr}>
+        ${item ? `<span class="inv-item" aria-hidden="true">${item.icon}</span>` : ""}
       </button>
     `;
   }

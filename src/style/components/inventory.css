@@ -1409,22 +1409,20 @@ body.inv-dragging {
   opacity: 1;
 }
 
-/* Hide item icon when filtered out, but keep slot visible */
-.inv-slot.inv-item-hidden .inv-item {
-  display: none !important;
+/* Dim filtered-out occupied slots but keep them visible */
+/* This prevents UX confusion where filtered-out items appear empty but block bulk moves */
+.inv-slot.is-filtered-out {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
-/* Make filtered-out slots look empty but still visible */
-.inv-slot.inv-item-hidden.is-filled {
-  background: rgba(255, 255, 255, 0.06);
+.inv-slot.is-filtered-out .inv-item {
+  opacity: 0.65; /* still visible enough to read as occupied */
 }
 
-.inv-slot.inv-item-hidden.is-filled::after {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 100%;
-  opacity: 0.3;
+/* Disable interaction for filtered-out items */
+.inv-slot[data-filter-hidden="1"] {
+  pointer-events: none;
 }
 
 @media (max-width: 600px) {
