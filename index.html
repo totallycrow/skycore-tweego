@@ -3996,7 +3996,49 @@ $(document).on(':storyinit', function () {
         "alice": { affection: 0 }
     };
 });
-/* twine-user-script #5: "01-inventory-config.js" */
+/* twine-user-script #5: "00-ui-safety-cleanup.js" */
+/* =========================================================================
+   UI Safety Cleanup (mobile)
+   - Prevent stuck touch/scroll locks after navigation
+   - Only runs if actually locked (conditional cleanup)
+========================================================================= */
+(function () {
+  "use strict";
+
+  function isLocked() {
+    const body = document.body;
+    const html = document.documentElement;
+    return (
+      body.classList.contains("inv-dragging") ||
+      body.classList.contains("modal-open") ||
+      html.classList.contains("modal-open") ||
+      body.style.position === "fixed"
+    );
+  }
+
+  function hardUnlockUI() {
+    if (!isLocked()) return;
+
+    try { window.Skycore?.Systems?.InventoryDrag?.cancelGlobalDrag?.(); } catch (e) {}
+    try { window.Skycore?.Systems?.InventoryModals?.forceCloseAll?.(); } catch (e) {}
+
+    const body = document.body;
+    const html = document.documentElement;
+
+    body.classList.remove("inv-dragging", "modal-open");
+    html.classList.remove("modal-open");
+
+    // Only clear the known lock styles
+    body.style.position = "";
+    body.style.top = "";
+    body.style.overflow = "";
+    body.style.touchAction = "";
+  }
+
+  $(document).on(":passagestart", hardUnlockUI);
+  window.addEventListener("pageshow", (e) => { if (e.persisted) hardUnlockUI(); });
+})();
+/* twine-user-script #6: "01-inventory-config.js" */
 /* =========================================================================
    Inventory System: Configuration
 ========================================================================= */
@@ -4026,7 +4068,7 @@ $(document).on(':storyinit', function () {
     WARD_MIN_SIZE
   };
 })();
-/* twine-user-script #6: "02-inventory-helpers.js" */
+/* twine-user-script #7: "02-inventory-helpers.js" */
 /* =========================================================================
    Inventory System: Helper Functions
 ========================================================================= */
@@ -4146,6 +4188,31 @@ $(document).on(':storyinit', function () {
     return item.shame.msg || null;
   }
 
+  // Check if filter is active (reduces code duplication)
+  function isFilterActive(filter) {
+    if (!filter) return false;
+    return (
+      (Array.isArray(filter.category) && filter.category.length > 0) ||
+      (Array.isArray(filter.type) && filter.type.length > 0) ||
+      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    );
+  }
+
+  // Safely resize array to target size (prevents issues with direct length manipulation)
+  function resizeArray(arr, targetSize, fillValue = null) {
+    if (!Array.isArray(arr)) {
+      console.warn('resizeArray: input is not an array');
+      return Array(targetSize).fill(fillValue);
+    }
+    const current = arr.length;
+    if (current < targetSize) {
+      arr.push(...Array(targetSize - current).fill(fillValue));
+    } else if (current > targetSize) {
+      arr.length = targetSize;
+    }
+    return arr;
+  }
+
   Skycore.Systems.InventoryHelpers = {
     itemDB,
     getAreaArray,
@@ -4159,10 +4226,12 @@ $(document).on(':storyinit', function () {
     findEquippedIndexBySlot,
     isSlotCovered,
     getEffectiveVisibility,
-    getShameMessage
+    getShameMessage,
+    isFilterActive,
+    resizeArray
   };
 })();
-/* twine-user-script #7: "03-inventory-state.js" */
+/* twine-user-script #8: "03-inventory-state.js" */
 /* =========================================================================
    Inventory System: State Management
 ========================================================================= */
@@ -4208,14 +4277,15 @@ $(document).on(':storyinit', function () {
     if (!V.invSys.filter) {
       V.invSys.filter = { category: [], type: [], slot: [] };
     }
-    // Migrate old filter format (single values) to arrays
-    if (V.invSys.filter && !Array.isArray(V.invSys.filter.category)) {
+    // Migrate old filter format (single values) to arrays (one-time migration)
+    if (!V.invSys._filterMigrated && V.invSys.filter && !Array.isArray(V.invSys.filter.category)) {
       const old = V.invSys.filter;
       V.invSys.filter = {
         category: old.category ? [old.category] : [],
         type: old.type ? [old.type] : [],
         slot: old.slot ? [old.slot] : []
       };
+      V.invSys._filterMigrated = true;
     }
 
     if (!Array.isArray(V.invSys.eq)) V.invSys.eq = Array(EQ_SIZE).fill(null);
@@ -4367,7 +4437,7 @@ $(document).on(':storyinit', function () {
     ensureState
   };
 })();
-/* twine-user-script #8: "04-inventory-wardrobe.js" */
+/* twine-user-script #9: "04-inventory-wardrobe.js" */
 /* =========================================================================
    Inventory System: Wardrobe Management
 ========================================================================= */
@@ -4453,7 +4523,7 @@ $(document).on(':storyinit', function () {
     placeInWardrobe
   };
 })();
-/* twine-user-script #9: "05-inventory-effects.js" */
+/* twine-user-script #10: "05-inventory-effects.js" */
 /* =========================================================================
    Inventory System: Use Effects
 ========================================================================= */
@@ -4558,7 +4628,7 @@ $(document).on(':storyinit', function () {
     buildAfterUseMessage
   };
 })();
-/* twine-user-script #10: "06-inventory-render.js" */
+/* twine-user-script #11: "06-inventory-render.js" */
 /* =========================================================================
    Inventory System: Rendering
 ========================================================================= */
@@ -5082,7 +5152,7 @@ $(document).on(':storyinit', function () {
     renderVibesModule
   };
 })();
-/* twine-user-script #11: "07-inventory-dom.js" */
+/* twine-user-script #12: "07-inventory-dom.js" */
 /* =========================================================================
    Inventory System: DOM Updates
 ========================================================================= */
@@ -5521,7 +5591,7 @@ $(document).on(':storyinit', function () {
     updateSetsList
   };
 })();
-/* twine-user-script #12: "08-inventory-modals.js" */
+/* twine-user-script #13: "08-inventory-modals.js" */
 /* =========================================================================
    Inventory System: Modals
 ========================================================================= */
@@ -5592,6 +5662,10 @@ $(document).on(':storyinit', function () {
       body.style.width = '100%';
       body.style.overflow = 'hidden';
       body.style.touchAction = 'none';
+      body.style.overscrollBehavior = 'none'; // Prevent bounce scroll on iOS
+
+      html.style.overflow = 'hidden'; // Also lock html element
+      html.style.touchAction = 'none'; // Prevent touch gestures on html
 
       body.classList.add('modal-open');
       html.classList.add('modal-open');
@@ -5607,6 +5681,10 @@ $(document).on(':storyinit', function () {
       body.style.width = '';
       body.style.overflow = '';
       body.style.touchAction = '';
+      body.style.overscrollBehavior = '';
+
+      html.style.overflow = '';
+      html.style.touchAction = '';
 
       body.classList.remove('modal-open');
       html.classList.remove('modal-open');
@@ -5697,7 +5775,11 @@ $(document).on(':storyinit', function () {
         });
       }
 
-      // Escape handler stays attached (it checks currentModal/is-open)
+      // Remove escape handler if no modals remain (prevent memory leak)
+      if (currentModal === null && escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+      }
     }
 
     return { open, close };
@@ -6668,7 +6750,7 @@ $(document).on(':storyinit', function () {
     CreateSetModal
   };
 })();
-/* twine-user-script #13: "09-inventory-actions.js" */
+/* twine-user-script #14: "09-inventory-actions.js" */
 /* =========================================================================
    Inventory System: Bulk Actions
 ========================================================================= */
@@ -7102,7 +7184,7 @@ $(document).on(':storyinit', function () {
     removeSet
   };
 })();
-/* twine-user-script #14: "10-inventory-tabs.js" */
+/* twine-user-script #15: "10-inventory-tabs.js" */
 /* =========================================================================
    Inventory System: Tab Management
 ========================================================================= */
@@ -7142,7 +7224,7 @@ $(document).on(':storyinit', function () {
     setActiveTab
   };
 })();
-/* twine-user-script #15: "11-inventory-drag.js" */
+/* twine-user-script #16: "11-inventory-drag.js" */
 /* =========================================================================
    Inventory System: Drag and Drop
 ========================================================================= */
@@ -7868,7 +7950,21 @@ $(document).on(':storyinit', function () {
 
       const area = slot.dataset.area;
       const index = Number(slot.dataset.index);
+      
+      // Validate area and index before accessing array
+      if (!area || isNaN(index) || index < 0) {
+        console.warn(`Invalid slot access: area=${area}, index=${index}`);
+        return;
+      }
+      
       const arr = getAreaArray(area);
+      
+      // Validate array exists and index is in bounds
+      if (!Array.isArray(arr) || index >= arr.length) {
+        console.warn(`Invalid array access: area=${area}, index=${index}, arrayLength=${arr ? arr.length : 'null'}`);
+        return;
+      }
+      
       const itemId = arr[index];
       if (!itemId) return;
 
@@ -7946,7 +8042,7 @@ $(document).on(':storyinit', function () {
     bindInteractions
   };
 })();
-/* twine-user-script #16: "12-inventory.js" */
+/* twine-user-script #17: "12-inventory.js" */
 /* =========================================================================
    Skycore System: Inventory + Wardrobe + UI + Modals + Drag/Drop (mobile-first)
 
@@ -8084,7 +8180,7 @@ $(document).on(':storyinit', function () {
 
   Skycore.Systems.Inventory = { ensureState };
 })();
-/* twine-user-script #17: "20-presentation-engine.js" */
+/* twine-user-script #18: "20-presentation-engine.js" */
 /* =========================================================================
    Skycore Simple Presentation Engine (FemScore)
 
@@ -8624,7 +8720,7 @@ $(document).on(':storyinit', function () {
     CFG
   };
 })();
-/* twine-user-script #18: "20-presentation-read.js" */
+/* twine-user-script #19: "20-presentation-read.js" */
 /* =========================================================================
    MC Sheet: Presentation Read (Gender Presentation Text)
    
@@ -8804,7 +8900,7 @@ $(document).on(':storyinit', function () {
     getGenderRead
   };
 })();
-/* twine-user-script #19: "20-presentation-state.js" */
+/* twine-user-script #20: "20-presentation-state.js" */
 /* =========================================================================
    Presentation State: Global Source of Truth
    
@@ -9005,7 +9101,7 @@ $(document).on(':storyinit', function () {
     getEquipment: getCurrentEquipment
   };
 })();
-/* twine-user-script #20: "20-stats-state.js" */
+/* twine-user-script #21: "20-stats-state.js" */
 /* =========================================================================
    MC Sheet v1: State Management
 ========================================================================= */
@@ -9153,7 +9249,7 @@ $(document).on(':storyinit', function () {
     ensureState
   };
 })();
-/* twine-user-script #21: "21-stats-render.js" */
+/* twine-user-script #22: "21-stats-render.js" */
 /* =========================================================================
    MC Sheet v1: Render Functions
 ========================================================================= */
@@ -9375,7 +9471,7 @@ $(document).on(':storyinit', function () {
     updatePresentationScore
   };
 })();
-/* twine-user-script #22: "22-stats.js" */
+/* twine-user-script #23: "22-stats.js" */
 /* =========================================================================
    MC Sheet v1: Main System File
 ========================================================================= */
@@ -9412,7 +9508,7 @@ $(document).on(':storyinit', function () {
 
   Skycore.Systems.Stats = { ensureState };
 })();
-/* twine-user-script #23: "30-character-display.js" */
+/* twine-user-script #24: "30-character-display.js" */
 /* =========================================================================
    Character Display Engine: Equipment-based sprite rendering
 ========================================================================= */
@@ -10003,7 +10099,7 @@ $(document).on(':storyinit', function () {
     CONFIG: DISPLAY_CONFIG
   };
 })();
-/* twine-user-script #24: "31-character-sidebar.js" */
+/* twine-user-script #25: "31-character-sidebar.js" */
 /* =========================================================================
    Character Display Sidebar: Reusable character display with presentation and quote
 ========================================================================= */
@@ -10270,7 +10366,7 @@ $(document).on(':storyinit', function () {
     bindActions: bindSidebarActions
   };
 })();
-/* twine-user-script #25: "32-character-sidebar-macro.js" */
+/* twine-user-script #26: "32-character-sidebar-macro.js" */
 /* =========================================================================
    Character Display Sidebar: Macro/Widget + UI Bar Integration
 ========================================================================= */
@@ -10501,7 +10597,7 @@ $(document).on(':storyinit', function () {
     initUIBarSidebar
   };
 })();
-/* twine-user-script #26: "33-eye-blink.js" */
+/* twine-user-script #27: "33-eye-blink.js" */
 /* =========================================================================
    Eye Blink Animation (Modular, Mobile-first)
    - Works with any .char-display element that contains .char-display-sprite-eyes
@@ -10946,7 +11042,7 @@ $(document).on(':storyinit', function () {
     });
   }
 })();
-/* twine-user-script #27: "34-mirror.js" */
+/* twine-user-script #28: "34-mirror.js" */
 /* =========================================================================
    Skycore System: Mirror Page (Mobile-first)
    - Left: full body character display (same engine as inventory)
@@ -11224,7 +11320,7 @@ $(document).on(':storyinit', function () {
     BACKGROUND_CONFIG: MIRROR_BACKGROUND_CONFIG
   };
 })();
-/* twine-user-script #28: "35-settings.js" */
+/* twine-user-script #29: "35-settings.js" */
 /* =========================================================================
    Skycore System: Settings Pages (Nested)
    - Settings Home: Main menu
@@ -11545,7 +11641,93 @@ $(document).on(':storyinit', function () {
     }
   });
 })();
-/* twine-user-script #29: "36-background-themes.js" */
+/* twine-user-script #30: "36-background-preload.js" */
+/* =========================================================================
+   BackgroundPreload: Preload and decode background images to prevent flicker
+   
+   Prevents the "room background becomes active but image isn't decoded yet" gap
+   that causes flicker when navigating between passages.
+========================================================================= */
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  const cache = new Map(); // url -> Promise
+
+  /**
+   * Preloads a single image and waits for it to decode
+   * @param {string} url - Image URL to preload
+   * @returns {Promise} - Resolves when image is loaded/decoded
+   */
+  function preload(url) {
+    if (!url) return Promise.resolve();
+    if (cache.has(url)) return cache.get(url);
+
+    const p = new Promise((resolve) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.loading = "eager";
+      img.src = url;
+      // decode() prevents "first frame blank" on many browsers
+      if (img.decode) {
+        img.decode().then(resolve).catch(resolve);
+      } else {
+        img.onload = resolve;
+        img.onerror = resolve; // Don't block on missing assets
+      }
+    });
+
+    cache.set(url, p);
+    return p;
+  }
+
+  /**
+   * Gets the URL for a background preset
+   * @param {string} preset - Preset name (e.g., "bedroom", "bedroom-vertical")
+   * @returns {string|null} - URL or null if not an image preset
+   */
+  function getPresetUrl(preset) {
+    // Only image-based presets need preloading
+    const imagePresets = {
+      "bedroom": "assets/rooms/bedroom-default.webp",
+      "bedroom-vertical": "assets/rooms/bedroom-vertical.webp"
+    };
+    return imagePresets[preset] || null;
+  }
+
+  /**
+   * Preloads all background images from the registry
+   * Called on story ready to preload all backgrounds upfront
+   */
+  async function preloadAllFromRegistry() {
+    const PRESETS = ["bedroom", "bedroom-vertical"]; // Only image presets
+    const urls = PRESETS.map(getPresetUrl).filter(Boolean);
+    await Promise.all(urls.map(preload));
+  }
+
+  /**
+   * Preloads the background for a given preset
+   * @param {string} preset - Preset name
+   * @returns {Promise} - Resolves when image is preloaded
+   */
+  async function preloadPreset(preset) {
+    const url = getPresetUrl(preset);
+    if (url) {
+      return preload(url);
+    }
+    return Promise.resolve();
+  }
+
+  Skycore.Systems.BackgroundPreload = {
+    preload,
+    preloadAllFromRegistry,
+    preloadPreset,
+    getPresetUrl
+  };
+})();
+/* twine-user-script #31: "36-background-themes.js" */
 /* =========================================================================
    BackgroundThemes: unified background presets + sync logic
    Areas: mirror | inventory | sidebar
@@ -11637,7 +11819,7 @@ $(document).on(':storyinit', function () {
     notifyChanged
   };
 })();
-/* twine-user-script #30: "40-back-button.js" */
+/* twine-user-script #32: "40-back-button.js" */
 /* =========================================================================
    Back Button System
 
@@ -11865,7 +12047,7 @@ $(document).on(':storyinit', function () {
     remove: removeBackButton
   };
 })();
-/* twine-user-script #31: "41-room.js" */
+/* twine-user-script #33: "41-room.js" */
 /* =========================================================================
    Skycore System: Room Page (Hub)
 

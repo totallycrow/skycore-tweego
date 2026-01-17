@@ -117,6 +117,31 @@
     return item.shame.msg || null;
   }
 
+  // Check if filter is active (reduces code duplication)
+  function isFilterActive(filter) {
+    if (!filter) return false;
+    return (
+      (Array.isArray(filter.category) && filter.category.length > 0) ||
+      (Array.isArray(filter.type) && filter.type.length > 0) ||
+      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    );
+  }
+
+  // Safely resize array to target size (prevents issues with direct length manipulation)
+  function resizeArray(arr, targetSize, fillValue = null) {
+    if (!Array.isArray(arr)) {
+      console.warn('resizeArray: input is not an array');
+      return Array(targetSize).fill(fillValue);
+    }
+    const current = arr.length;
+    if (current < targetSize) {
+      arr.push(...Array(targetSize - current).fill(fillValue));
+    } else if (current > targetSize) {
+      arr.length = targetSize;
+    }
+    return arr;
+  }
+
   Skycore.Systems.InventoryHelpers = {
     itemDB,
     getAreaArray,
@@ -130,6 +155,8 @@
     findEquippedIndexBySlot,
     isSlotCovered,
     getEffectiveVisibility,
-    getShameMessage
+    getShameMessage,
+    isFilterActive,
+    resizeArray
   };
 })();

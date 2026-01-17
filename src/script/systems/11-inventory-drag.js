@@ -723,7 +723,21 @@
 
       const area = slot.dataset.area;
       const index = Number(slot.dataset.index);
+      
+      // Validate area and index before accessing array
+      if (!area || isNaN(index) || index < 0) {
+        console.warn(`Invalid slot access: area=${area}, index=${index}`);
+        return;
+      }
+      
       const arr = getAreaArray(area);
+      
+      // Validate array exists and index is in bounds
+      if (!Array.isArray(arr) || index >= arr.length) {
+        console.warn(`Invalid array access: area=${area}, index=${index}, arrayLength=${arr ? arr.length : 'null'}`);
+        return;
+      }
+      
       const itemId = arr[index];
       if (!itemId) return;
 

@@ -43,14 +43,15 @@
     if (!V.invSys.filter) {
       V.invSys.filter = { category: [], type: [], slot: [] };
     }
-    // Migrate old filter format (single values) to arrays
-    if (V.invSys.filter && !Array.isArray(V.invSys.filter.category)) {
+    // Migrate old filter format (single values) to arrays (one-time migration)
+    if (!V.invSys._filterMigrated && V.invSys.filter && !Array.isArray(V.invSys.filter.category)) {
       const old = V.invSys.filter;
       V.invSys.filter = {
         category: old.category ? [old.category] : [],
         type: old.type ? [old.type] : [],
         slot: old.slot ? [old.slot] : []
       };
+      V.invSys._filterMigrated = true;
     }
 
     if (!Array.isArray(V.invSys.eq)) V.invSys.eq = Array(EQ_SIZE).fill(null);

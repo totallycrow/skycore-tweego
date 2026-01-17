@@ -68,6 +68,10 @@
       body.style.width = '100%';
       body.style.overflow = 'hidden';
       body.style.touchAction = 'none';
+      body.style.overscrollBehavior = 'none'; // Prevent bounce scroll on iOS
+
+      html.style.overflow = 'hidden'; // Also lock html element
+      html.style.touchAction = 'none'; // Prevent touch gestures on html
 
       body.classList.add('modal-open');
       html.classList.add('modal-open');
@@ -83,6 +87,10 @@
       body.style.width = '';
       body.style.overflow = '';
       body.style.touchAction = '';
+      body.style.overscrollBehavior = '';
+
+      html.style.overflow = '';
+      html.style.touchAction = '';
 
       body.classList.remove('modal-open');
       html.classList.remove('modal-open');
@@ -173,7 +181,11 @@
         });
       }
 
-      // Escape handler stays attached (it checks currentModal/is-open)
+      // Remove escape handler if no modals remain (prevent memory leak)
+      if (currentModal === null && escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+      }
     }
 
     return { open, close };
