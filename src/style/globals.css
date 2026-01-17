@@ -19,3 +19,17 @@
   background: #e91e63; /* Pink for feminization */
   transition: width 0.5s ease-in-out;
 }
+
+/* Modal scroll lock - iOS Safari compatible */
+body.modal-open {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+html.modal-open,
+body.modal-open {
+  overscroll-behavior: none;
+}

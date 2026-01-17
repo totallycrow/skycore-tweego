@@ -13,6 +13,172 @@
   const { placeInWardrobe, compactWardrobe } = Skycore.Systems.InventoryWardrobe;
   const { applyUseEffects, buildAfterUseMessage, fmtEffectLine, fmtBonusLine } = Skycore.Systems.InventoryEffects;
 
+  // ---- ModalManager: Centralized modal handling ---------------------------
+  const ModalManager = (function () {
+    let currentModal = null;
+    let previousFocus = null;
+    let scrollY = 0;
+    let escapeHandler = null;
+
+    // Get all focusable elements within a modal
+    function getFocusableElements(container) {
+      const selector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+      return Array.from(container.querySelectorAll(selector)).filter(el => {
+        if (!el || el.disabled) return false;
+        // Visible check that works better for fixed/overlay UIs
+        return el.getClientRects && el.getClientRects().length > 0;
+      });
+    }
+
+    // Trap focus inside modal
+    function trapFocus(ev) {
+      if (!currentModal) return;
+
+      const focusableElements = getFocusableElements(currentModal);
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (ev.key === 'Tab') {
+        if (ev.shiftKey) {
+          // Shift + Tab
+          if (document.activeElement === firstElement) {
+            ev.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          // Tab
+          if (document.activeElement === lastElement) {
+            ev.preventDefault();
+            firstElement.focus();
+          }
+        }
+      }
+    }
+
+    // Lock body scroll (iOS Safari compatible)
+    function lockBodyScroll() {
+      scrollY = window.scrollY || window.pageYOffset;
+      const body = document.body;
+      const html = document.documentElement;
+
+      body.style.position = 'fixed';
+      body.style.top = `-${scrollY}px`;
+      body.style.width = '100%';
+      body.style.overflow = 'hidden';
+      body.style.touchAction = 'none';
+
+      body.classList.add('modal-open');
+      html.classList.add('modal-open');
+    }
+
+    // Unlock body scroll
+    function unlockBodyScroll() {
+      const body = document.body;
+      const html = document.documentElement;
+
+      body.style.position = '';
+      body.style.top = '';
+      body.style.width = '';
+      body.style.overflow = '';
+      body.style.touchAction = '';
+
+      body.classList.remove('modal-open');
+      html.classList.remove('modal-open');
+
+      window.scrollTo(0, scrollY);
+    }
+
+    // Centralized Escape handler
+    function handleEscape(ev) {
+      if (ev.key === 'Escape' && currentModal && currentModal.classList.contains('is-open')) {
+        // Find the close function for this modal
+        const closeBtn = currentModal.querySelector('.inv-modal-close');
+        if (closeBtn) {
+          closeBtn.click();
+        }
+      }
+    }
+
+    function open(overlay, initialFocusElement) {
+      // Close any existing modal first (but don't restore focus; we're opening a new one)
+      if (currentModal) {
+        close({ restoreFocus: false });
+      }
+
+      currentModal = overlay;
+
+      // Save currently focused element (may be body, may be null-ish)
+      previousFocus = document.activeElement || null;
+
+      // Lock scroll
+      lockBodyScroll();
+
+      // Set up focus trap
+      overlay.addEventListener('keydown', trapFocus);
+
+      // Set up centralized Escape handler (only once)
+      if (!escapeHandler) {
+        escapeHandler = handleEscape;
+        document.addEventListener('keydown', escapeHandler);
+      }
+
+      // Show modal
+      overlay.classList.add('is-open');
+
+      // Focus initial element (or first focusable)
+      const target =
+        initialFocusElement ||
+        (getFocusableElements(overlay)[0] || null);
+
+      if (target && typeof target.focus === "function") {
+        requestAnimationFrame(() => {
+          // target is a stable reference; not affected by later variable resets
+          target.focus({ preventScroll: true });
+        });
+      }
+    }
+
+    function close(opts) {
+      if (!currentModal) return;
+
+      const restoreFocus = !(opts && opts.restoreFocus === false);
+
+      const modal = currentModal;
+      currentModal = null;
+
+      // Capture previousFocus NOW so rAF doesn't see it as null later
+      const prev = previousFocus;
+      previousFocus = null;
+
+      // Remove focus trap
+      modal.removeEventListener('keydown', trapFocus);
+
+      // Hide modal
+      modal.classList.remove('is-open');
+
+      // Unlock scroll
+      unlockBodyScroll();
+
+      // Restore focus safely
+      if (
+        restoreFocus &&
+        prev &&
+        typeof prev.focus === "function" &&
+        document.contains(prev)
+      ) {
+        requestAnimationFrame(() => {
+          prev.focus({ preventScroll: true });
+        });
+      }
+
+      // Escape handler stays attached (it checks currentModal/is-open)
+    }
+
+    return { open, close };
+  })();
+
   // ---- Alert Modal (close only) ------------------------------------------
   const AlertModal = (function () {
     let overlay = null, titleEl = null, msgEl = null;
@@ -47,23 +213,21 @@
       titleEl = overlay.querySelector(".inv-modal-title");
       msgEl = overlay.querySelector(".inv-alert-msg");
 
-      const close = () => overlay.classList.remove("is-open");
+      const close = () => {
+        ModalManager.close();
+      };
 
       overlay.querySelector(".inv-modal-close").addEventListener("click", close);
       overlay.querySelector(".inv-alert-close").addEventListener("click", close);
       overlay.addEventListener("click", (ev) => { if (ev.target === overlay) close(); });
-
-      document.addEventListener("keydown", (ev) => {
-        if (ev.key === "Escape" && overlay.classList.contains("is-open")) close();
-      });
     }
 
     function open({ title, message }) {
       ensure();
       titleEl.textContent = title || "Notice";
       msgEl.textContent = message || "";
-      overlay.classList.add("is-open");
-      overlay.querySelector(".inv-modal-close").focus({ preventScroll: true });
+      const closeBtn = overlay.querySelector(".inv-modal-close");
+      ModalManager.open(overlay, closeBtn);
     }
 
     return { open };
@@ -108,17 +272,13 @@
       btnClose = overlay.querySelector(".inv-confirm-close");
 
       const close = () => {
-        overlay.classList.remove("is-open");
+        ModalManager.close();
         onClose = null;
         onAction = null;
       };
 
       overlay.querySelector(".inv-modal-close").addEventListener("click", close);
       overlay.addEventListener("click", (ev) => { if (ev.target === overlay) close(); });
-
-      document.addEventListener("keydown", (ev) => {
-        if (ev.key === "Escape" && overlay.classList.contains("is-open")) close();
-      });
 
       btnClose.addEventListener("click", () => { const fn = onClose; close(); if (typeof fn === "function") fn(); });
       btnAction.addEventListener("click", () => { const fn = onAction; close(); if (typeof fn === "function") fn(); });
@@ -133,8 +293,8 @@
       onClose = closeAction || null;
       onAction = actionAction || null;
 
-      overlay.classList.add("is-open");
-      overlay.querySelector(".inv-modal-close").focus({ preventScroll: true });
+      const closeBtn = overlay.querySelector(".inv-modal-close");
+      ModalManager.open(overlay, closeBtn);
     }
 
     return { open };
@@ -218,7 +378,7 @@
       closeBtn = overlay.querySelector(".inv-close-action");
 
       const close = () => {
-        overlay.classList.remove("is-open");
+        ModalManager.close();
         ctx = null;
         // Reset scroll position when closing
         if (scrollEl) {
@@ -230,9 +390,6 @@
       closeBtn.addEventListener("click", close);
 
       overlay.addEventListener("click", (ev) => { if (ev.target === overlay) close(); });
-      document.addEventListener("keydown", (ev) => {
-        if (ev.key === "Escape" && overlay.classList.contains("is-open")) close();
-      });
 
       primaryBtn.addEventListener("click", () => {
         if (!ctx) return;
@@ -479,7 +636,13 @@
         scrollEl.scrollTop = 0;
       }
 
-      overlay.classList.add("is-open");
+      // Ensure scroll reset before opening
+      if (scrollEl) {
+        scrollEl.scrollTop = 0;
+      }
+
+      const closeBtn = overlay.querySelector(".inv-modal-close");
+      ModalManager.open(overlay, closeBtn);
       
       // Ensure scroll reset after modal becomes visible (double-check)
       requestAnimationFrame(() => {
@@ -487,8 +650,6 @@
           scrollEl.scrollTop = 0;
         }
       });
-
-      overlay.querySelector(".inv-modal-close").focus({ preventScroll: true });
     }
 
     function doWearRemove(c) {
@@ -678,7 +839,9 @@
       slotList = overlay.querySelector('[data-filter-type="slot"]');
       removeFilterBtn = overlay.querySelector(".inv-filter-remove");
 
-      const close = () => overlay.classList.remove("is-open");
+      const close = () => {
+        ModalManager.close();
+      };
 
       overlay.querySelector(".inv-modal-close").addEventListener("click", close);
       overlay.querySelector(".inv-filter-close").addEventListener("click", close);
@@ -690,10 +853,6 @@
       });
 
       overlay.addEventListener("click", (ev) => { if (ev.target === overlay) close(); });
-
-      document.addEventListener("keydown", (ev) => {
-        if (ev.key === "Escape" && overlay.classList.contains("is-open")) close();
-      });
     }
 
     function buildFilterOptions() {
@@ -816,8 +975,8 @@
       });
 
       updateFilterUI(filters);
-      overlay.classList.add("is-open");
-      overlay.querySelector(".inv-modal-close").focus({ preventScroll: true });
+      const closeBtn = overlay.querySelector(".inv-modal-close");
+      ModalManager.open(overlay, closeBtn);
     }
 
     function updateFilterUI(filters) {
@@ -915,7 +1074,7 @@
       btnClose = overlay.querySelector(".inv-set-close");
 
       const close = () => {
-        overlay.classList.remove("is-open");
+        ModalManager.close();
         onCreate = null;
         inputEl.value = "";
         equippedItems = [];
@@ -938,9 +1097,9 @@
         }
       });
 
-      document.addEventListener("keydown", (ev) => {
-        if (ev.key === "Escape" && overlay.classList.contains("is-open")) close();
-        if (ev.key === "Enter" && overlay.classList.contains("is-open") && document.activeElement === inputEl) {
+      // Handle Enter key in input (separate from focus trap)
+      inputEl.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" && overlay.classList.contains("is-open")) {
           ev.preventDefault();
           btnCreate.click();
         }
@@ -971,8 +1130,7 @@
       renderItemsList();
 
       inputEl.value = "";
-      overlay.classList.add("is-open");
-      inputEl.focus({ preventScroll: true });
+      ModalManager.open(overlay, inputEl);
     }
 
     return { open };
