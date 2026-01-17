@@ -291,6 +291,37 @@
   }
 
   /**
+   * Preloads a single image and waits for it to decode
+   * @param {string} src - Image source path
+   * @returns {Promise} - Resolves when image is loaded/decoded
+   */
+  function preloadOne(src) {
+    return new Promise(resolve => {
+      if (!src) return resolve();
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = () => resolve();
+      img.onerror = () => resolve(); // don't block on missing asset
+      img.src = src;
+
+      // decode() is best but not always reliable across iOS versions
+      if (img.decode) {
+        img.decode().then(resolve).catch(resolve);
+      }
+    });
+  }
+
+  /**
+   * Preloads multiple images in parallel
+   * @param {Array<string>} srcList - Array of image source paths
+   * @returns {Promise} - Resolves when all images are loaded/decoded
+   */
+  function preloadAll(srcList) {
+    const unique = Array.from(new Set((srcList || []).filter(Boolean)));
+    return Promise.all(unique.map(preloadOne));
+  }
+
+  /**
    * Updates an existing character display element in the DOM
    * @param {HTMLElement|string} element - DOM element or selector
    * @param {Object} options - Display options (same as renderCharacterDisplay)
@@ -391,27 +422,79 @@
       if (!src) eyesSpriteEl.src = DISPLAY_CONFIG.eyesSprites.open;
     }
     
-    // Remove existing clothing layers
-    const existingClothingLayers = layersContainer.querySelectorAll(".char-display-layer-clothing");
-    existingClothingLayers.forEach(layer => layer.remove());
-    
-    // Add new clothing layers
-    equippedSprites.forEach((spritePath, index) => {
-      const layerDiv = document.createElement("div");
-      layerDiv.className = "char-display-layer char-display-layer-clothing";
-      layerDiv.style.zIndex = DISPLAY_CONFIG.layers.zIndex.clothing + index;
-      
-      const img = document.createElement("img");
-      img.src = spritePath;
-      img.alt = `Clothing layer ${index + 1}`;
-      img.setAttribute("role", "img");
-      img.setAttribute("aria-label", "Clothing layer");
-      img.className = "char-display-sprite char-display-sprite-clothing";
-      img.setAttribute("data-sprite-type", "clothing");
-      img.setAttribute("data-sprite-index", index.toString());
-      
-      layerDiv.appendChild(img);
-      layersContainer.appendChild(layerDiv);
+    // --- iOS-safe clothing swap: keep old layers until new images are ready ---
+    const newClothingSprites = equippedSprites.slice(); // array of paths
+
+    // Token prevents older async swaps from "winning"
+    el._clothingSwapToken = (el._clothingSwapToken || 0) + 1;
+    const token = el._clothingSwapToken;
+
+    // Preload/Decode new clothing sprites FIRST (old clothing stays visible)
+    preloadAll(newClothingSprites).then(() => {
+      if (!el.isConnected) return;
+      if (el._clothingSwapToken !== token) return; // newer update happened
+
+      // Snapshot old clothing layers (keep them visible until new is ready)
+      const oldLayers = Array.from(layersContainer.querySelectorAll(".char-display-layer-clothing"));
+      const hasOld = oldLayers.length > 0;
+
+      // Build new clothing layers off-DOM
+      const frag = document.createDocumentFragment();
+
+      newClothingSprites.forEach((spritePath, index) => {
+        const layerDiv = document.createElement("div");
+
+        // IMPORTANT:
+        // - If we have old layers, start hidden and fade in (crossfade)
+        // - If we don't (equipping from naked), show immediately (no naked frame)
+        layerDiv.className = hasOld
+          ? "char-display-layer char-display-layer-clothing is-enter"
+          : "char-display-layer char-display-layer-clothing is-visible";
+
+        layerDiv.style.zIndex = DISPLAY_CONFIG.layers.zIndex.clothing + index;
+
+        const img = document.createElement("img");
+        img.src = spritePath;
+        img.alt = `Clothing layer ${index + 1}`;
+        img.setAttribute("role", "img");
+        img.setAttribute("aria-label", "Clothing layer");
+        img.className = "char-display-sprite char-display-sprite-clothing";
+        img.setAttribute("data-sprite-type", "clothing");
+        img.setAttribute("data-sprite-index", index.toString());
+        img.decoding = "async";
+
+        layerDiv.appendChild(img);
+        frag.appendChild(layerDiv);
+      });
+
+      // Append new layers WITHOUT removing old yet (prevents naked flash)
+      layersContainer.appendChild(frag);
+
+      if (!hasOld) {
+        // Nothing to crossfade; we're done.
+        return;
+      }
+
+      // Fade in new layers next frame, then remove old layers after transition
+      requestAnimationFrame(() => {
+        if (!el.isConnected) return;
+        if (el._clothingSwapToken !== token) return; // newer update happened
+
+        const entering = layersContainer.querySelectorAll(".char-display-layer-clothing.is-enter");
+        entering.forEach(layer => {
+          layer.classList.add("is-visible");
+          layer.classList.remove("is-enter");
+        });
+
+        // Remove old layers after transition duration (match CSS, add small buffer)
+        const REMOVE_AFTER_MS = 110; // CSS is 80ms; buffer for iOS
+        setTimeout(() => {
+          if (!el.isConnected) return;
+          if (el._clothingSwapToken !== token) return;
+
+          oldLayers.forEach(layer => layer.remove());
+        }, REMOVE_AFTER_MS);
+      });
     });
 
     // Update angle if provided

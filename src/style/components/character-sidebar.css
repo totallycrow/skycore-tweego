@@ -72,6 +72,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* iOS stability: reduce Safari repaint oddities */
+  contain: paint;
+  transform: translateZ(0);
 }
 
 .char-sidebar .char-display-layer {
@@ -94,6 +97,22 @@
 
 .char-sidebar .char-display-layer-clothing {
   z-index: 3;
+}
+
+/* Prevent harsh pop when swapping clothing on mobile */
+.char-sidebar .char-display-layer-clothing.is-enter {
+  opacity: 0;
+}
+
+.char-sidebar .char-display-layer-clothing.is-visible {
+  opacity: 1;
+  transition: opacity 80ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .char-sidebar .char-display-layer-clothing.is-visible {
+    transition: none !important;
+  }
 }
 
 /* Make sprite fill container (like inventory) */
