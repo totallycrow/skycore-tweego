@@ -1112,10 +1112,16 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   display: grid;
   gap: var(--slot-gap);
 
-  /* FIX: allow page scroll gestures on mobile */
+  /* Base: allow vertical scroll gestures on mobile */
   touch-action: pan-y;
 
   user-select: none;
+}
+
+/* During drag: lock all touch actions */
+body.inv-dragging .inv-grid,
+body.inv-dragging .inv-slot {
+  touch-action: none !important;
 }
 
 /* Equipment: 2 cols × 5 rows */
@@ -1246,6 +1252,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 .inv-slot.is-filled {
   background: rgba(255, 255, 255, 0.1);
   /* Prevent scrolling when touching filled slots to allow reliable dragging */
+  /* Note: body.inv-dragging will override this during active drag */
   touch-action: none;
 }
 
@@ -1283,6 +1290,12 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 body.inv-dragging {
   overscroll-behavior: none;
   touch-action: none;
+}
+
+/* Ensure all inventory elements respect drag lock */
+body.inv-dragging .eq-charBox,
+body.inv-dragging .inv-ward-slot {
+  touch-action: none !important;
 }
 
 /* === Tabs + Wardrobe (additive; doesn't modify existing styling) ========= */
@@ -4243,7 +4256,7 @@ $(document).on(':storyinit', function () {
   Skycore.Systems = Skycore.Systems || {};
 
   const { EQ_SIZE, INV_SIZE, WARD_MIN_SIZE } = Skycore.Systems.InventoryConfig;
-  const { itemDB, firstEmptyIndex, getEquipSlot } = Skycore.Systems.InventoryHelpers;
+  const { itemDB, firstEmptyIndex, getEquipSlot, resizeArray } = Skycore.Systems.InventoryHelpers;
 
   function ensureState() {
     const V = State.variables;
@@ -4304,8 +4317,9 @@ $(document).on(':storyinit', function () {
       V.invSys.wardrobe = arr;
     }
 
-    V.invSys.eq.length = EQ_SIZE;
-    V.invSys.inv.length = INV_SIZE;
+    // Use safe resize helper instead of direct length manipulation
+    resizeArray(V.invSys.eq, EQ_SIZE, null);
+    resizeArray(V.invSys.inv, INV_SIZE, null);
 
     if (Skycore.Systems.InventoryWardrobe) {
       Skycore.Systems.InventoryWardrobe.ensureWardrobeCapacity(WARD_MIN_SIZE);
@@ -4362,8 +4376,8 @@ $(document).on(':storyinit', function () {
       const oldMascItems = ["it:m01", "it:m02", "it:m03", "it:m04", "it:m05", "it:m06"];
       const itemsForWardrobe = [...feminineItems, ...oldMascItems];
 
-      // Clear wardrobe
-      V.invSys.wardrobe.length = 0;
+      // Clear wardrobe (use resizeArray for safety)
+      resizeArray(V.invSys.wardrobe, 0, null);
 
       // Ensure wardrobe has enough capacity for all items
       if (Skycore.Systems.InventoryWardrobe) {
@@ -4449,7 +4463,7 @@ $(document).on(':storyinit', function () {
   Skycore.Systems = Skycore.Systems || {};
 
   const { CFG, WARD_MIN_SIZE } = Skycore.Systems.InventoryConfig;
-  const { firstEmptyIndex, countEmpty } = Skycore.Systems.InventoryHelpers;
+  const { firstEmptyIndex, countEmpty, resizeArray } = Skycore.Systems.InventoryHelpers;
 
   function ensureWardrobeCapacity(minSize) {
     const W = State.variables.invSys.wardrobe;
@@ -4491,14 +4505,12 @@ $(document).on(':storyinit', function () {
     const targetSize = rows * CFG.invCols;
     
     // Rebuild array: items first, then empty slots (exactly enough to reach targetSize)
-    wardrobe.length = 0;
+    // Use resizeArray for safety
+    resizeArray(wardrobe, 0, null);
     for (let i = 0; i < items.length; i++) {
       wardrobe.push(items[i]);
     }
-    const emptySlotsNeeded = targetSize - items.length;
-    for (let i = 0; i < emptySlotsNeeded; i++) {
-      wardrobe.push(null);
-    }
+    resizeArray(wardrobe, targetSize, null);
   }
 
   // Place into wardrobe (infinite). Returns placed index.
@@ -4898,9 +4910,16 @@ $(document).on(':storyinit', function () {
       (Array.isArray(filter.slot) && filter.slot.length > 0)
     );
 
+    // Validate state before accessing
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv)) {
+      console.warn('renderUI: invSys not properly initialized');
+      return '<div class="inv-empty-state">Inventory system not initialized.</div>';
+    }
+    
     // Always render all slots with correct indices
     // Equipped items are NEVER filtered - always visible
-    const eqSlots = State.variables.invSys.eq.map((id, i) => {
+    const eqSlots = invSys.eq.map((id, i) => {
       return slotHTML("eq", i, id, filter, true);
     }).join("");
     
@@ -4910,7 +4929,7 @@ $(document).on(':storyinit', function () {
     if (!filter || (!Array.isArray(filter.category) || filter.category.length === 0) &&
         (!Array.isArray(filter.type) || filter.type.length === 0) &&
         (!Array.isArray(filter.slot) || filter.slot.length === 0)) {
-      invSlots = State.variables.invSys.inv.map((id, i) => {
+      invSlots = invSys.inv.map((id, i) => {
         return slotHTML("inv", i, id, filter, true);
       }).join("");
     } else {
@@ -6762,14 +6781,19 @@ $(document).on(':storyinit', function () {
   Skycore.Systems = Skycore.Systems || {};
 
   const { EQ_SIZE, INV_SIZE } = Skycore.Systems.InventoryConfig;
-  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot } = Skycore.Systems.InventoryHelpers;
+  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot, resizeArray } = Skycore.Systems.InventoryHelpers;
   const { updateAllSlots, rerenderWardrobeGrid, updateSlotEl } = Skycore.Systems.InventoryDOM;
   const { placeInWardrobe, ensureWardrobeHasEmptyRow, compactWardrobe } = Skycore.Systems.InventoryWardrobe;
   const { matchesFilter } = Skycore.Systems.InventoryRender;
 
   // Clean up: sort items by body slot (head to feet), then compact to the top
   function cleanUpEquipped(root) {
-    const eq = State.variables.invSys.eq;
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.eq)) {
+      console.warn('cleanUpEquipped: invSys.eq not initialized');
+      return;
+    }
+    const eq = invSys.eq;
     const items = eq.filter(Boolean);
     
     // Define slot order from top to bottom (head to feet)
@@ -6797,28 +6821,29 @@ $(document).on(':storyinit', function () {
       return posA - posB;
     });
     
-    // Clear the array and fill with sorted items
-    eq.length = 0;
+    // Clear the array and fill with sorted items (use resizeArray for safety)
+    resizeArray(eq, 0, null);
     for (let i = 0; i < items.length; i++) {
       eq.push(items[i]);
     }
-    for (let i = items.length; i < EQ_SIZE; i++) {
-      eq.push(null);
-    }
+    resizeArray(eq, EQ_SIZE, null);
     
     updateAllSlots(root, "eq");
   }
 
   function cleanUpInventory(root) {
-    const inv = State.variables.invSys.inv;
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.inv)) {
+      console.warn('cleanUpInventory: invSys.inv not initialized');
+      return;
+    }
+    const inv = invSys.inv;
     const items = inv.filter(Boolean);
-    inv.length = 0;
+    resizeArray(inv, 0, null);
     for (let i = 0; i < items.length; i++) {
       inv.push(items[i]);
     }
-    for (let i = items.length; i < INV_SIZE; i++) {
-      inv.push(null);
-    }
+    resizeArray(inv, INV_SIZE, null);
     
     // Check if filter is active - if so, re-render to show sorted order
     const filter = State.variables.invSys?.filter || null;
@@ -6842,8 +6867,13 @@ $(document).on(':storyinit', function () {
   }
 
   function unequipAll(root) {
-    const eq = State.variables.invSys.eq;
-    const inv = State.variables.invSys.inv;
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv)) {
+      console.warn('unequipAll: invSys not properly initialized');
+      return;
+    }
+    const eq = invSys.eq;
+    const inv = invSys.inv;
 
     const equippedItems = eq.filter(Boolean);
     if (!equippedItems.length) return;
@@ -7617,9 +7647,14 @@ $(document).on(':storyinit', function () {
 
       if (drag.fromArea === toArea && drag.fromIndex === toIndex) return false;
 
-      const eq = State.variables.invSys.eq;
-      const inv = State.variables.invSys.inv;
-      const wardrobe = State.variables.invSys.wardrobe;
+      const invSys = State.variables.invSys;
+      if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv) || !Array.isArray(invSys.wardrobe)) {
+        console.warn('commitDrop: invSys not properly initialized');
+        return false;
+      }
+      const eq = invSys.eq;
+      const inv = invSys.inv;
+      const wardrobe = invSys.wardrobe;
 
       const fromArr = getAreaArray(drag.fromArea);
       let toArr = getAreaArray(toArea);

@@ -390,9 +390,14 @@
 
       if (drag.fromArea === toArea && drag.fromIndex === toIndex) return false;
 
-      const eq = State.variables.invSys.eq;
-      const inv = State.variables.invSys.inv;
-      const wardrobe = State.variables.invSys.wardrobe;
+      const invSys = State.variables.invSys;
+      if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv) || !Array.isArray(invSys.wardrobe)) {
+        console.warn('commitDrop: invSys not properly initialized');
+        return false;
+      }
+      const eq = invSys.eq;
+      const inv = invSys.inv;
+      const wardrobe = invSys.wardrobe;
 
       const fromArr = getAreaArray(drag.fromArea);
       let toArr = getAreaArray(toArea);

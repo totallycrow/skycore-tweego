@@ -9,14 +9,19 @@
   Skycore.Systems = Skycore.Systems || {};
 
   const { EQ_SIZE, INV_SIZE } = Skycore.Systems.InventoryConfig;
-  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot } = Skycore.Systems.InventoryHelpers;
+  const { getAreaArray, firstEmptyIndex, countEmpty, getEquipSlot, getItem, findEquippedIndexBySlot, resizeArray } = Skycore.Systems.InventoryHelpers;
   const { updateAllSlots, rerenderWardrobeGrid, updateSlotEl } = Skycore.Systems.InventoryDOM;
   const { placeInWardrobe, ensureWardrobeHasEmptyRow, compactWardrobe } = Skycore.Systems.InventoryWardrobe;
   const { matchesFilter } = Skycore.Systems.InventoryRender;
 
   // Clean up: sort items by body slot (head to feet), then compact to the top
   function cleanUpEquipped(root) {
-    const eq = State.variables.invSys.eq;
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.eq)) {
+      console.warn('cleanUpEquipped: invSys.eq not initialized');
+      return;
+    }
+    const eq = invSys.eq;
     const items = eq.filter(Boolean);
     
     // Define slot order from top to bottom (head to feet)
@@ -44,28 +49,29 @@
       return posA - posB;
     });
     
-    // Clear the array and fill with sorted items
-    eq.length = 0;
+    // Clear the array and fill with sorted items (use resizeArray for safety)
+    resizeArray(eq, 0, null);
     for (let i = 0; i < items.length; i++) {
       eq.push(items[i]);
     }
-    for (let i = items.length; i < EQ_SIZE; i++) {
-      eq.push(null);
-    }
+    resizeArray(eq, EQ_SIZE, null);
     
     updateAllSlots(root, "eq");
   }
 
   function cleanUpInventory(root) {
-    const inv = State.variables.invSys.inv;
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.inv)) {
+      console.warn('cleanUpInventory: invSys.inv not initialized');
+      return;
+    }
+    const inv = invSys.inv;
     const items = inv.filter(Boolean);
-    inv.length = 0;
+    resizeArray(inv, 0, null);
     for (let i = 0; i < items.length; i++) {
       inv.push(items[i]);
     }
-    for (let i = items.length; i < INV_SIZE; i++) {
-      inv.push(null);
-    }
+    resizeArray(inv, INV_SIZE, null);
     
     // Check if filter is active - if so, re-render to show sorted order
     const filter = State.variables.invSys?.filter || null;
@@ -89,8 +95,13 @@
   }
 
   function unequipAll(root) {
-    const eq = State.variables.invSys.eq;
-    const inv = State.variables.invSys.inv;
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv)) {
+      console.warn('unequipAll: invSys not properly initialized');
+      return;
+    }
+    const eq = invSys.eq;
+    const inv = invSys.inv;
 
     const equippedItems = eq.filter(Boolean);
     if (!equippedItems.length) return;

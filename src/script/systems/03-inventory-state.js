@@ -9,7 +9,7 @@
   Skycore.Systems = Skycore.Systems || {};
 
   const { EQ_SIZE, INV_SIZE, WARD_MIN_SIZE } = Skycore.Systems.InventoryConfig;
-  const { itemDB, firstEmptyIndex, getEquipSlot } = Skycore.Systems.InventoryHelpers;
+  const { itemDB, firstEmptyIndex, getEquipSlot, resizeArray } = Skycore.Systems.InventoryHelpers;
 
   function ensureState() {
     const V = State.variables;
@@ -70,8 +70,9 @@
       V.invSys.wardrobe = arr;
     }
 
-    V.invSys.eq.length = EQ_SIZE;
-    V.invSys.inv.length = INV_SIZE;
+    // Use safe resize helper instead of direct length manipulation
+    resizeArray(V.invSys.eq, EQ_SIZE, null);
+    resizeArray(V.invSys.inv, INV_SIZE, null);
 
     if (Skycore.Systems.InventoryWardrobe) {
       Skycore.Systems.InventoryWardrobe.ensureWardrobeCapacity(WARD_MIN_SIZE);
@@ -128,8 +129,8 @@
       const oldMascItems = ["it:m01", "it:m02", "it:m03", "it:m04", "it:m05", "it:m06"];
       const itemsForWardrobe = [...feminineItems, ...oldMascItems];
 
-      // Clear wardrobe
-      V.invSys.wardrobe.length = 0;
+      // Clear wardrobe (use resizeArray for safety)
+      resizeArray(V.invSys.wardrobe, 0, null);
 
       // Ensure wardrobe has enough capacity for all items
       if (Skycore.Systems.InventoryWardrobe) {

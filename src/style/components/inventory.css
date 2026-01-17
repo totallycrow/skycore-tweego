@@ -478,10 +478,16 @@
   display: grid;
   gap: var(--slot-gap);
 
-  /* FIX: allow page scroll gestures on mobile */
+  /* Base: allow vertical scroll gestures on mobile */
   touch-action: pan-y;
 
   user-select: none;
+}
+
+/* During drag: lock all touch actions */
+body.inv-dragging .inv-grid,
+body.inv-dragging .inv-slot {
+  touch-action: none !important;
 }
 
 /* Equipment: 2 cols × 5 rows */
@@ -612,6 +618,7 @@
 .inv-slot.is-filled {
   background: rgba(255, 255, 255, 0.1);
   /* Prevent scrolling when touching filled slots to allow reliable dragging */
+  /* Note: body.inv-dragging will override this during active drag */
   touch-action: none;
 }
 
@@ -649,6 +656,12 @@
 body.inv-dragging {
   overscroll-behavior: none;
   touch-action: none;
+}
+
+/* Ensure all inventory elements respect drag lock */
+body.inv-dragging .eq-charBox,
+body.inv-dragging .inv-ward-slot {
+  touch-action: none !important;
 }
 
 /* === Tabs + Wardrobe (additive; doesn't modify existing styling) ========= */

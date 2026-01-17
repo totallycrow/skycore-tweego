@@ -9,7 +9,7 @@
   Skycore.Systems = Skycore.Systems || {};
 
   const { CFG, WARD_MIN_SIZE } = Skycore.Systems.InventoryConfig;
-  const { firstEmptyIndex, countEmpty } = Skycore.Systems.InventoryHelpers;
+  const { firstEmptyIndex, countEmpty, resizeArray } = Skycore.Systems.InventoryHelpers;
 
   function ensureWardrobeCapacity(minSize) {
     const W = State.variables.invSys.wardrobe;
@@ -51,14 +51,12 @@
     const targetSize = rows * CFG.invCols;
     
     // Rebuild array: items first, then empty slots (exactly enough to reach targetSize)
-    wardrobe.length = 0;
+    // Use resizeArray for safety
+    resizeArray(wardrobe, 0, null);
     for (let i = 0; i < items.length; i++) {
       wardrobe.push(items[i]);
     }
-    const emptySlotsNeeded = targetSize - items.length;
-    for (let i = 0; i < emptySlotsNeeded; i++) {
-      wardrobe.push(null);
-    }
+    resizeArray(wardrobe, targetSize, null);
   }
 
   // Place into wardrobe (infinite). Returns placed index.

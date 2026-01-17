@@ -267,9 +267,16 @@
       (Array.isArray(filter.slot) && filter.slot.length > 0)
     );
 
+    // Validate state before accessing
+    const invSys = State.variables.invSys;
+    if (!invSys || !Array.isArray(invSys.eq) || !Array.isArray(invSys.inv)) {
+      console.warn('renderUI: invSys not properly initialized');
+      return '<div class="inv-empty-state">Inventory system not initialized.</div>';
+    }
+    
     // Always render all slots with correct indices
     // Equipped items are NEVER filtered - always visible
-    const eqSlots = State.variables.invSys.eq.map((id, i) => {
+    const eqSlots = invSys.eq.map((id, i) => {
       return slotHTML("eq", i, id, filter, true);
     }).join("");
     
@@ -279,7 +286,7 @@
     if (!filter || (!Array.isArray(filter.category) || filter.category.length === 0) &&
         (!Array.isArray(filter.type) || filter.type.length === 0) &&
         (!Array.isArray(filter.slot) || filter.slot.length === 0)) {
-      invSlots = State.variables.invSys.inv.map((id, i) => {
+      invSlots = invSys.inv.map((id, i) => {
         return slotHTML("inv", i, id, filter, true);
       }).join("");
     } else {
