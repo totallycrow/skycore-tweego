@@ -383,6 +383,46 @@
     }
   }
 
+  /**
+   * Update sets list fragment incrementally (preserves scroll position and focus)
+   * Only updates the sets list DOM, not the entire UI
+   */
+  function updateSetsList(root) {
+    const setsListEl = root.querySelector(".inv-sets-list");
+    if (!setsListEl) return;
+
+    const { getItem } = Skycore.Systems.InventoryHelpers;
+    const sets = State.variables.invSys?.sets || [];
+    
+    if (sets.length === 0) {
+      setsListEl.innerHTML = '<div class="inv-empty-state">(No sets saved)</div>';
+      return;
+    }
+
+    setsListEl.innerHTML = sets.map(set => {
+      const itemsList = set.items.map(itemId => {
+        const item = getItem(itemId);
+        if (!item) return '';
+        return `<span class="inv-set-item-preview">${item.icon}</span>`;
+      }).join('');
+      
+      return `
+        <div class="inv-set-entry" data-set-id="${set.id}">
+          <div class="inv-set-header">
+            <div class="inv-set-name">${set.name}</div>
+          </div>
+          <div class="inv-set-items-preview">
+            ${itemsList || '<span class="inv-set-empty-msg">(Empty set)</span>'}
+          </div>
+          <div class="inv-set-actions">
+            <a href="javascript:void(0)" class="inv-link inv-set-action inv-set-action-apply" data-action="apply-set" data-set-id="${set.id}" role="button">APPLY</a>
+            <a href="javascript:void(0)" class="inv-link inv-set-action inv-set-action-remove" data-action="remove-set" data-set-id="${set.id}" role="button">REMOVE</a>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
   Skycore.Systems.InventoryDOM = {
     updateSlotEl,
     updateAllSlots,
@@ -392,6 +432,7 @@
     updatePresentationScore,
     updateOutfitVibes,
     updateCharacterDisplay,
-    updateCharacterComment
+    updateCharacterComment,
+    updateSetsList
   };
 })();

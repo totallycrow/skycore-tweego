@@ -177,16 +177,25 @@
         const { createSetFromEquipped } = Skycore.Systems.InventoryActions;
         const { renderUI } = Skycore.Systems.InventoryRender;
         const { setActiveTab } = Skycore.Systems.InventoryTabs;
+        const { updateSetsList } = Skycore.Systems.InventoryDOM;
         
         CreateSetModal.open(equippedItems, (setName, items) => {
           createSetFromEquipped(setName, items, root);
-          // Re-render UI to show the new set
-          const wrap = root.parentElement;
+          
           const currentTab = root.getAttribute("data-tab") || "inventory";
-          wrap.innerHTML = renderUI("itemsets");
-          const newRoot = wrap.querySelector('[data-inv-root="1"]');
-          bindInteractions(newRoot);
-          setActiveTab(newRoot, "itemsets");
+          const isSwitchingTabs = currentTab !== "itemsets";
+          
+          if (isSwitchingTabs) {
+            // Layout change (tab switch): full re-render is appropriate
+            const wrap = root.parentElement;
+            wrap.innerHTML = renderUI("itemsets");
+            const newRoot = wrap.querySelector('[data-inv-root="1"]');
+            bindInteractions(newRoot);
+            setActiveTab(newRoot, "itemsets");
+          } else {
+            // Already on itemsets tab: incremental update only (preserves scroll/focus)
+            updateSetsList(root);
+          }
         });
       }
       
@@ -195,17 +204,18 @@
         if (!setId) return;
         
         const { applySet } = Skycore.Systems.InventoryActions;
-        const { renderUI } = Skycore.Systems.InventoryRender;
-        applySet(setId, root);
-        // Refresh UI to update equipped items
-        const wrap = root.parentElement;
-        const currentTab = root.getAttribute("data-tab") || "inventory";
-        wrap.innerHTML = renderUI(currentTab);
-        const newRoot = wrap.querySelector('[data-inv-root="1"]');
-        bindInteractions(newRoot);
-        setActiveTab(newRoot, currentTab);
+        const { updateSetsList } = Skycore.Systems.InventoryDOM;
         
-        // Re-attach blink animation after UI refresh (character display was rebuilt)
+        // Apply the set (this updates state and calls updateAllSlots internally)
+        // applySet already handles updating all affected slots and triggering side effects
+        applySet(setId, root);
+        
+        // Incremental update: only update sets list fragment (preserves scroll/focus)
+        // Note: applySet already updated all grids via updateAllSlots/updateSlotEl
+        updateSetsList(root);
+        
+        // Re-attach blink animation (character display was updated)
+        const wrap = root.parentElement;
         Skycore.Systems.EyeBlink?.attachAll?.(wrap);
       }
       
@@ -214,15 +224,13 @@
         if (!setId) return;
         
         const { removeSet } = Skycore.Systems.InventoryActions;
-        const { renderUI } = Skycore.Systems.InventoryRender;
+        const { updateSetsList } = Skycore.Systems.InventoryDOM;
+        
+        // Remove the set (this updates state)
         removeSet(setId, root);
-        // Refresh UI to update sets list
-        const wrap = root.parentElement;
-        const currentTab = root.getAttribute("data-tab") || "inventory";
-        wrap.innerHTML = renderUI(currentTab);
-        const newRoot = wrap.querySelector('[data-inv-root="1"]');
-        bindInteractions(newRoot);
-        setActiveTab(newRoot, currentTab);
+        
+        // Incremental update: only update sets list fragment
+        updateSetsList(root);
       }
 
       // Immediately blur the clicked element to prevent iOS focus stickiness
@@ -294,7 +302,11 @@
       startX: 0,
       startY: 0,
       pointerType: null,
-      captured: false
+      captured: false,
+      // Throttled ghost movement
+      latestX: 0,
+      latestY: 0,
+      rafPending: false
     };
 
     function createGhost(itemId) {
@@ -306,9 +318,25 @@
       return ghost;
     }
 
+    function applyGhostTransform() {
+      if (!drag.ghost) {
+        drag.rafPending = false;
+        return;
+      }
+      drag.ghost.style.transform = `translate(${drag.latestX - drag.offsetX}px, ${drag.latestY - drag.offsetY}px)`;
+      drag.rafPending = false;
+    }
+
     function moveGhost(x, y) {
       if (!drag.ghost) return;
-      drag.ghost.style.transform = `translate(${x - drag.offsetX}px, ${y - drag.offsetY}px)`;
+      // Store latest coordinates
+      drag.latestX = x;
+      drag.latestY = y;
+      // Schedule transform update if not already pending
+      if (!drag.rafPending) {
+        drag.rafPending = true;
+        requestAnimationFrame(applyGhostTransform);
+      }
     }
 
     function findSlotAtPoint(x, y) {
@@ -668,6 +696,9 @@
       drag.lastTarget = null;
       drag.startX = 0;
       drag.startY = 0;
+      drag.latestX = 0;
+      drag.latestY = 0;
+      drag.rafPending = false;
 
       // iOS: after drag/drop, the source/target button may stay focused (blue highlight).
       const wasTouch = drag.pointerType === "touch" || drag.pointerType === "pen";
