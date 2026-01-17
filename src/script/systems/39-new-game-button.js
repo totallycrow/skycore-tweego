@@ -1,8 +1,16 @@
 /* =========================================================================
-   New Game Button: Adds a "New Game" button to the UI bar
+   Restart + Clean Cache Button: Adds a comprehensive restart button to the UI bar
    
    Inserts a button at the top of the UI bar (above SAVES/RESTART buttons)
-   that resets the game to a fresh state.
+   that resets the game to a fresh state and clears all clearable caches:
+   - SugarCube saves (storage.clear())
+   - localStorage (all entries)
+   - sessionStorage
+   - Service Worker caches (if any)
+   - In-memory presentation cache
+   
+   Note: Browser HTTP cache (images/CSS/JS files) cannot be cleared from
+   JavaScript due to browser security restrictions.
 ========================================================================= */
 
 (function () {
@@ -40,7 +48,7 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "ui-bar-button";
-    button.textContent = "NEW GAME";
+    button.textContent = "RESTART + CLEAN CACHE";
     button.style.cssText = `
       width: 100%;
       padding: 0.75em 1em;
@@ -68,23 +76,86 @@
       button.style.borderColor = 'rgba(255, 255, 255, 0.2)';
     });
 
+    // Comprehensive cache clearing function
+    async function clearAllCaches() {
+      const cleared = [];
+      
+      // 1. Clear SugarCube storage (saves)
+      if (typeof storage !== 'undefined' && storage.clear) {
+        try {
+          storage.clear();
+          cleared.push('game saves');
+        } catch (err) {
+          console.warn('Could not clear SugarCube storage:', err);
+        }
+      }
+      
+      // 2. Clear localStorage (all entries for this origin)
+      try {
+        localStorage.clear();
+        cleared.push('localStorage');
+      } catch (err) {
+        console.warn('Could not clear localStorage:', err);
+      }
+      
+      // 3. Clear sessionStorage
+      try {
+        sessionStorage.clear();
+        cleared.push('sessionStorage');
+      } catch (err) {
+        console.warn('Could not clear sessionStorage:', err);
+      }
+      
+      // 4. Clear Service Worker caches (if available)
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(
+            cacheNames.map(cacheName => caches.delete(cacheName))
+          );
+          if (cacheNames.length > 0) {
+            cleared.push('service worker caches');
+          }
+        } catch (err) {
+          console.warn('Could not clear service worker caches:', err);
+        }
+      }
+      
+      // 5. Clear in-memory presentation cache (if exists)
+      if (window.Skycore && window.Skycore.Systems && window.Skycore.Systems.PresentationState) {
+        try {
+          // Clear cached presentation data
+          if (window.Skycore.Systems.PresentationState.invalidate) {
+            window.Skycore.Systems.PresentationState.invalidate();
+            cleared.push('presentation cache');
+          }
+        } catch (err) {
+          console.warn('Could not clear presentation cache:', err);
+        }
+      }
+      
+      return cleared;
+    }
+
     // Add click handler
-    button.addEventListener('click', function(e) {
+    button.addEventListener('click', async function(e) {
       e.preventDefault();
       
       // Confirm with user
-      if (confirm('Start a new game? This will reset all progress and clear saves.')) {
-        // Clear persistent storage (saves are stored here)
-        if (typeof storage !== 'undefined' && storage.clear) {
-          try {
-            storage.clear();
-          } catch (err) {
-            console.warn('Could not clear storage:', err);
-          }
-        }
+      const message = 'Start a new game and clear all cache?\n\n' +
+        'This will:\n' +
+        '• Reset all game progress\n' +
+        '• Clear all saves\n' +
+        '• Clear localStorage and sessionStorage\n' +
+        '• Clear service worker caches (if any)\n\n' +
+        'Note: Browser HTTP cache (images/CSS/JS) cannot be cleared from JavaScript.';
+      
+      if (confirm(message)) {
+        // Clear all caches
+        const cleared = await clearAllCaches();
+        console.log('Cleared caches:', cleared.join(', '));
         
         // Reset game state using Engine.restart()
-        // This fully resets the game to initial state and clears all saves
         if (typeof Engine !== 'undefined') {
           if (typeof Engine.restart === 'function') {
             Engine.restart();
