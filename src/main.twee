@@ -25,6 +25,16 @@ A mirror glints. A drawer is half-open. Your phone is suspiciously silent.
 	<<link "MC STATS">>
 		<<goto "MC Stats">>
 	<</link>>
+
+	<<link "MIRROR">>
+		<<goto "Mirror">>
+	<</link>>
+
+	<<link "SETTINGS">>
+		<<goto "Settings">>
+	<</link>>
+
+	
 </div>
 
 
@@ -45,5 +55,17 @@ Right now it's just an ominous void with hangers that look judgmental.
 
 :: MC Stats
 <<mcStats>>
+
+<<backButton "Start">>
+
+
+:: Mirror
+<div id="mirrorRoot"><<mirror>></div>
+
+<<backButton "Start">>
+
+
+:: Settings
+<<settings>>
 
 <<backButton "Start">>

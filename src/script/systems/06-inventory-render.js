@@ -120,7 +120,8 @@
     // NOTE: showPresentation is now false - presentation/vibes are separate modules
     if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.render) {
       return Skycore.Systems.CharacterDisplay.render({
-        showPresentation: false
+        showPresentation: false,
+        blinkGroup: "mc"
       });
     }
     // Fallback for backwards compatibility

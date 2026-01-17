@@ -51,7 +51,8 @@
       // Use exact same call as inventory does - don't pass equipment explicitly
       // Let CharacterDisplay get it from state (same as inventory)
       characterDisplayHTML = Skycore.Systems.CharacterDisplay.render({
-        showPresentation: true
+        showPresentation: true,
+        blinkGroup: "mc"
       });
     } else {
       // Fallback if CharacterDisplay is not available

@@ -212,6 +212,7 @@
    * @param {string} options.className - Additional CSS classes
    * @param {boolean} options.showPresentation - Whether to show presentation score (default: true)
    * @param {string} options.baseSpriteKey - Optional base sprite key (e.g., "naked", "naked-selfie")
+   * @param {string} options.blinkGroup - Optional blink group ID for synchronized blinking
    * @returns {string} - HTML string for character display
    */
   function renderCharacterDisplay(options = {}) {
@@ -220,7 +221,8 @@
       equipment = null,
       className = "",
       showPresentation = true,
-      baseSpriteKey = null
+      baseSpriteKey = null,
+      blinkGroup = null
     } = options;
 
     // Get equipment array
@@ -235,6 +237,9 @@
       `char-display-angle-${angle}`,
       className
     ].filter(Boolean).join(" ");
+
+    // Safe blinkGroup attribute (only if provided and non-empty)
+    const safeBlinkGroup = blinkGroup && typeof blinkGroup === "string" && blinkGroup.trim() ? blinkGroup.trim() : null;
 
     // NOTE: Presentation and vibes are now separate modules rendered outside CharacterDisplay
     // showPresentation flag is kept for backwards compatibility but does nothing
@@ -279,7 +284,7 @@
 
     // Render character display
     return `
-      <div class="${classes}" data-angle="${angle}">
+      <div class="${classes}" data-angle="${angle}"${safeBlinkGroup ? ` data-blink-group="${safeBlinkGroup}"` : ""}>
         <div class="char-display-container">
           <div class="char-display-layers">
             ${spriteLayersHTML}
@@ -500,6 +505,16 @@
     // Update angle if provided
     if (options.angle) {
       el.setAttribute("data-angle", options.angle);
+    }
+
+    // Update blinkGroup if provided
+    if (options.blinkGroup !== undefined) {
+      const safeBlinkGroup = options.blinkGroup && typeof options.blinkGroup === "string" && options.blinkGroup.trim() ? options.blinkGroup.trim() : null;
+      if (safeBlinkGroup) {
+        el.setAttribute("data-blink-group", safeBlinkGroup);
+      } else {
+        el.removeAttribute("data-blink-group");
+      }
     }
 
     // Update className if provided

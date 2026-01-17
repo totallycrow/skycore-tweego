@@ -2128,7 +2128,293 @@ body.inv-dragging {
     padding-right: 6px;
   }
 }
-/* twine-user-stylesheet #4: "stats.css" */
+/* twine-user-stylesheet #4: "mirror.css" */
+/* =========================================================================
+   Mirror Page Layout (mobile-first)
+   - 1/2: full-body character
+   - 1/2: zoomed portrait (same sprite stack)
+   Notes:
+   - Uses CSS overflow clipping for the portrait frame.
+   - Zoom/pan is controlled via CSS vars so it's easy to tune.
+   - Unified background stage behind both panels for cohesive look.
+========================================================================= */
+
+/* Unified background stage behind both panels */
+.mirror-stage {
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+
+  padding: 12px;
+  border-radius: 22px;
+
+  border: 1px solid rgba(255,255,255,0.10);
+  overflow: hidden;
+  position: relative;
+
+  /* Defaults */
+  --mirror-bg-blur: 0px;
+  --mirror-stage-bg: radial-gradient(120% 120% at 50% 0%,
+    rgba(255,255,255,0.08),
+    rgba(0,0,0,0.55)
+  );
+  --mirror-stage-bg-size: auto;
+  --mirror-stage-bg-pos: center;
+  --mirror-stage-bg-repeat: no-repeat;
+  /* Background transform (for developer control) */
+  --mirror-bg-scale: 1;
+  --mirror-bg-x: 0%;
+  --mirror-bg-y: 0%;
+}
+
+/* Actual background layer (blur applies here only) */
+.mirror-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: var(--mirror-stage-bg);
+  background-size: var(--mirror-stage-bg-size);
+  background-position: var(--mirror-stage-bg-pos);
+  background-repeat: var(--mirror-stage-bg-repeat);
+
+  filter: blur(var(--mirror-bg-blur));
+  /* Developer-controlled transform: scale + translate */
+  transform: scale(calc(var(--mirror-bg-scale) * 1.05)) translate(var(--mirror-bg-x), var(--mirror-bg-y));
+  transform-origin: center;
+  pointer-events: none;
+}
+
+/* Vignette on top of background */
+.mirror-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(80% 90% at 50% 10%,
+    rgba(0,0,0,0.10),
+    rgba(0,0,0,0.55)
+  );
+  pointer-events: none;
+}
+
+/* Content above background layers */
+.mirror-ui {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.mirror-left,
+.mirror-right {
+  min-width: 0; /* prevents grid overflow on mobile */
+}
+
+.mirror-panel {
+  height: clamp(360px, 70vh, 760px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+
+  /* glassy panel: unified stage background shows through */
+  background: rgba(255, 255, 255, 0.03);
+
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Left full-body */
+.mirror-panel--body {
+  padding: 8px;
+}
+
+/* Right portrait */
+.mirror-panel--portrait {
+  padding: 0;
+  /* glassy panel: unified stage background shows through */
+  background: rgba(255, 255, 255, 0.03);
+
+  /* Portrait zoom tuning - Set via JS from MIRROR_PORTRAIT_CONFIG */
+  /* Defaults (will be overridden by JS): */
+  --mirror-face-scale: 2.5;
+  --mirror-face-x: -8%;
+  --mirror-face-y: -5%;
+}
+
+/* Don't fight zoom with padding */
+.mirror-panel--portrait .char-display-container {
+  padding: 0;
+}
+
+/* Zoom only the layers, clip via panel overflow */
+.mirror-panel--portrait .char-display-layers {
+  transform: scale(var(--mirror-face-scale)) translate(var(--mirror-face-x), var(--mirror-face-y));
+  transform-origin: center;
+}
+
+/* Mobile adjustments (very small screens) */
+@media (max-width: 420px) {
+  .mirror-panel {
+    height: clamp(320px, 68vh, 640px);
+  }
+  /* Portrait config applied via JS - see MIRROR_PORTRAIT_CONFIG.mobileSmall */
+}
+
+/* Desktop adjustments */
+@media (min-width: 768px) {
+  /* Portrait config applied via JS - see MIRROR_PORTRAIT_CONFIG.desktop */
+}
+
+/* Background presets */
+.mirror-stage[data-bg="dark"] {
+  --mirror-stage-bg: radial-gradient(120% 120% at 50% 0%,
+    rgba(255,255,255,0.08),
+    rgba(0,0,0,0.55)
+  );
+}
+
+.mirror-stage[data-bg="studio"] {
+  --mirror-stage-bg: radial-gradient(140% 120% at 50% 0%,
+    rgba(255,255,255,0.16),
+    rgba(30,30,30,0.85)
+  );
+}
+
+.mirror-stage[data-bg="pink"] {
+  --mirror-stage-bg: radial-gradient(140% 120% at 40% 0%,
+    rgba(255,140,200,0.18),
+    rgba(20,10,20,0.90)
+  );
+}
+
+.mirror-stage[data-bg="blue"] {
+  --mirror-stage-bg: radial-gradient(140% 120% at 50% 0%,
+    rgba(120,180,255,0.18),
+    rgba(10,15,25,0.92)
+  );
+}
+
+/* Bedroom image background */
+.mirror-stage[data-bg="bedroom"] {
+  --mirror-stage-bg: url("assets/rooms/bedroom-default.webp");
+  --mirror-stage-bg-size: cover;
+  --mirror-stage-bg-pos: center;
+  --mirror-stage-bg-repeat: no-repeat;
+}
+
+/* Bedroom vertical image background */
+.mirror-stage[data-bg="bedroom-vertical"] {
+  --mirror-stage-bg: url("assets/rooms/bedroom-vertical.webp");
+  --mirror-stage-bg-size: cover;
+  --mirror-stage-bg-pos: center;
+  --mirror-stage-bg-repeat: no-repeat;
+}
+/* twine-user-stylesheet #5: "settings.css" */
+.settings-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 10px 12px;
+}
+
+.settings-title {
+  margin: 6px 0 14px;
+  font-size: 1.35rem;
+}
+
+.settings-block {
+  margin: 14px 0;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+}
+
+.settings-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.settings-value {
+  opacity: 0.85;
+  font-weight: 700;
+}
+
+.set-btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.set-btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.06);
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.set-btn:hover {
+  border-color: rgba(255,255,255,0.30);
+  background: rgba(255,255,255,0.09);
+}
+
+.set-btn.is-active {
+  border-color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.12);
+}
+
+.set-btn--wide {
+  width: 100%;
+}
+
+.set-slider {
+  width: 100%;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.settings-hint {
+  margin-top: 8px;
+  opacity: 0.8;
+  font-size: 0.95rem;
+}
+
+.settings-preview {
+  padding: 10px;
+}
+
+.settings-preview-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.settings-preview-card {
+  height: 88px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.03);
+  display: grid;
+  place-items: center;
+  opacity: 0.85;
+}
+
+.settings-actions {
+  margin-top: 12px;
+}
+/* twine-user-stylesheet #6: "stats.css" */
 /* === MC Sheet v1: Stats Display (mobile-first) === */
 
 .mc-stats-container {
@@ -2284,8 +2570,8 @@ body.inv-dragging {
   color: rgba(255, 100, 100, 0.9);
   font-weight: 600;
 }
-/* twine-user-stylesheet #5: "desktop.css" */
-/* twine-user-stylesheet #6: "globals.css" */
+/* twine-user-stylesheet #7: "desktop.css" */
+/* twine-user-stylesheet #8: "globals.css" */
 .npc-profile {
   border: 1px solid #444;
   padding: 15px;
@@ -4175,7 +4461,8 @@ $(document).on(':storyinit', function () {
     // NOTE: showPresentation is now false - presentation/vibes are separate modules
     if (Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.render) {
       return Skycore.Systems.CharacterDisplay.render({
-        showPresentation: false
+        showPresentation: false,
+        blinkGroup: "mc"
       });
     }
     // Fallback for backwards compatibility
@@ -9114,6 +9401,7 @@ $(document).on(':storyinit', function () {
    * @param {string} options.className - Additional CSS classes
    * @param {boolean} options.showPresentation - Whether to show presentation score (default: true)
    * @param {string} options.baseSpriteKey - Optional base sprite key (e.g., "naked", "naked-selfie")
+   * @param {string} options.blinkGroup - Optional blink group ID for synchronized blinking
    * @returns {string} - HTML string for character display
    */
   function renderCharacterDisplay(options = {}) {
@@ -9122,7 +9410,8 @@ $(document).on(':storyinit', function () {
       equipment = null,
       className = "",
       showPresentation = true,
-      baseSpriteKey = null
+      baseSpriteKey = null,
+      blinkGroup = null
     } = options;
 
     // Get equipment array
@@ -9137,6 +9426,9 @@ $(document).on(':storyinit', function () {
       `char-display-angle-${angle}`,
       className
     ].filter(Boolean).join(" ");
+
+    // Safe blinkGroup attribute (only if provided and non-empty)
+    const safeBlinkGroup = blinkGroup && typeof blinkGroup === "string" && blinkGroup.trim() ? blinkGroup.trim() : null;
 
     // NOTE: Presentation and vibes are now separate modules rendered outside CharacterDisplay
     // showPresentation flag is kept for backwards compatibility but does nothing
@@ -9181,7 +9473,7 @@ $(document).on(':storyinit', function () {
 
     // Render character display
     return `
-      <div class="${classes}" data-angle="${angle}">
+      <div class="${classes}" data-angle="${angle}"${safeBlinkGroup ? ` data-blink-group="${safeBlinkGroup}"` : ""}>
         <div class="char-display-container">
           <div class="char-display-layers">
             ${spriteLayersHTML}
@@ -9404,6 +9696,16 @@ $(document).on(':storyinit', function () {
       el.setAttribute("data-angle", options.angle);
     }
 
+    // Update blinkGroup if provided
+    if (options.blinkGroup !== undefined) {
+      const safeBlinkGroup = options.blinkGroup && typeof options.blinkGroup === "string" && options.blinkGroup.trim() ? options.blinkGroup.trim() : null;
+      if (safeBlinkGroup) {
+        el.setAttribute("data-blink-group", safeBlinkGroup);
+      } else {
+        el.removeAttribute("data-blink-group");
+      }
+    }
+
     // Update className if provided
     if (options.className !== undefined) {
       // Remove existing custom classes (preserve char-display and char-display-angle-*)
@@ -9529,7 +9831,8 @@ $(document).on(':storyinit', function () {
       // Use exact same call as inventory does - don't pass equipment explicitly
       // Let CharacterDisplay get it from state (same as inventory)
       characterDisplayHTML = Skycore.Systems.CharacterDisplay.render({
-        showPresentation: true
+        showPresentation: true,
+        blinkGroup: "mc"
       });
     } else {
       // Fallback if CharacterDisplay is not available
@@ -9941,6 +10244,7 @@ $(document).on(':storyinit', function () {
   Skycore.Systems = Skycore.Systems || {};
 
   const controllers = new WeakMap();
+  const groupControllers = new Map(); // Map<blinkGroupId, { state, displays: Set<HTMLElement> }>
 
   function prefersReducedMotion() {
     return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -9975,6 +10279,17 @@ $(document).on(':storyinit', function () {
     return charDisplayEl?.querySelector?.(".char-display-sprite-eyes") || null;
   }
 
+  function getAllEyesInGroup(blinkGroupId) {
+    if (!blinkGroupId) return [];
+    const displays = document.querySelectorAll(`.char-display[data-blink-group="${blinkGroupId}"]`);
+    const eyes = [];
+    displays.forEach(display => {
+      const eyesEl = getEyesEl(display);
+      if (eyesEl) eyes.push(eyesEl);
+    });
+    return eyes;
+  }
+
   function clearTimers(state) {
     if (state.nextTimer) clearTimeout(state.nextTimer);
     if (state.phaseTimer) clearTimeout(state.phaseTimer);
@@ -9988,41 +10303,104 @@ $(document).on(':storyinit', function () {
     if (eyesEl && eyesEl.src !== src) eyesEl.src = src;
   }
 
-  function scheduleNext(charDisplayEl, state) {
-    clearTimers(state);
-    if (!state.enabled) return;
-    if (!charDisplayEl.isConnected) return;
-
-    const wait = randInt(state.minIdleMs, state.maxIdleMs);
-    state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), wait);
+  function setEyesFrameForGroup(blinkGroupId, frameKey) {
+    const eyesElements = getAllEyesInGroup(blinkGroupId);
+    eyesElements.forEach(eyesEl => setEyesFrame(eyesEl, frameKey));
   }
 
-  function blinkOnce(charDisplayEl, state) {
+  function scheduleNext(charDisplayEl, state, blinkGroupId = null) {
+    clearTimers(state);
     if (!state.enabled) return;
-    if (document.hidden) return;
-    if (!charDisplayEl.isConnected) return;
+    if (blinkGroupId) {
+      // Group mode: check if any display in group is still connected
+      const displays = document.querySelectorAll(`.char-display[data-blink-group="${blinkGroupId}"]`);
+      const hasConnected = Array.from(displays).some(el => el.isConnected);
+      if (!hasConnected) {
+        clearTimers(state);
+        return;
+      }
+    } else {
+      // Individual mode: check this display
+      if (!charDisplayEl.isConnected) {
+        clearTimers(state);
+        return;
+      }
+    }
 
-    const eyesEl = getEyesEl(charDisplayEl);
-    if (!eyesEl) {
-      // The character display is being re-rendered (e.g. applying item sets).
-      // Do NOT let the blink controller die—just try again later.
-      scheduleNext(charDisplayEl, state);
+    const wait = randInt(state.minIdleMs, state.maxIdleMs);
+    state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state, blinkGroupId), wait);
+  }
+
+  function blinkOnce(charDisplayEl, state, blinkGroupId = null) {
+    if (!state.enabled) return;
+
+    // IMPORTANT: if tab hidden, stop timers so controller can restart later
+    if (document.hidden) {
+      clearTimers(state);
       return;
     }
 
-    // half -> closed -> half -> open (delicate)
-    setEyesFrame(eyesEl, "half");
-    state.phaseTimer = setTimeout(() => {
-      setEyesFrame(eyesEl, "closed");
+    if (blinkGroupId) {
+      // Group mode: check if any display in group is still connected
+      const displays = document.querySelectorAll(`.char-display[data-blink-group="${blinkGroupId}"]`);
+      const hasConnected = Array.from(displays).some(el => el.isConnected);
+
+      // IMPORTANT: if nobody is connected, stop timers (prevents "dead" controller)
+      if (!hasConnected) {
+        clearTimers(state);
+        return;
+      }
+
+      // Check if eyes elements exist in any display
+      const eyesElements = getAllEyesInGroup(blinkGroupId);
+      if (eyesElements.length === 0) {
+        // Eyes are being re-rendered, try again later
+        scheduleNext(charDisplayEl, state, blinkGroupId);
+        return;
+      }
+
+      // Blink all eyes in group simultaneously
+      setEyesFrameForGroup(blinkGroupId, "half");
       state.phaseTimer = setTimeout(() => {
-        setEyesFrame(eyesEl, "half");
+        setEyesFrameForGroup(blinkGroupId, "closed");
         state.phaseTimer = setTimeout(() => {
-          setEyesFrame(eyesEl, "open");
-          state.hasBlinkedOnce = true;
-          scheduleNext(charDisplayEl, state);
-        }, state.tHalf2Ms);
-      }, state.tClosedMs);
-    }, state.tHalf1Ms);
+          setEyesFrameForGroup(blinkGroupId, "half");
+          state.phaseTimer = setTimeout(() => {
+            setEyesFrameForGroup(blinkGroupId, "open");
+            state.hasBlinkedOnce = true;
+            scheduleNext(charDisplayEl, state, blinkGroupId);
+          }, state.tHalf2Ms);
+        }, state.tClosedMs);
+      }, state.tHalf1Ms);
+    } else {
+      // Individual mode: original behavior
+      if (!charDisplayEl.isConnected) {
+        clearTimers(state);
+        return;
+      }
+
+      const eyesEl = getEyesEl(charDisplayEl);
+      if (!eyesEl) {
+        // The character display is being re-rendered (e.g. applying item sets).
+        // Do NOT let the blink controller die—just try again later.
+        scheduleNext(charDisplayEl, state);
+        return;
+      }
+
+      // half -> closed -> half -> open (delicate)
+      setEyesFrame(eyesEl, "half");
+      state.phaseTimer = setTimeout(() => {
+        setEyesFrame(eyesEl, "closed");
+        state.phaseTimer = setTimeout(() => {
+          setEyesFrame(eyesEl, "half");
+          state.phaseTimer = setTimeout(() => {
+            setEyesFrame(eyesEl, "open");
+            state.hasBlinkedOnce = true;
+            scheduleNext(charDisplayEl, state);
+          }, state.tHalf2Ms);
+        }, state.tClosedMs);
+      }, state.tHalf1Ms);
+    }
   }
 
   function attach(charDisplayEl, options = {}) {
@@ -10032,34 +10410,81 @@ $(document).on(':storyinit', function () {
     const eyesEl = getEyesEl(charDisplayEl);
     if (!eyesEl) return; // eyes layer not present -> nothing to animate
 
+    // Check if this display is part of a blink group
+    const blinkGroupId = charDisplayEl.getAttribute("data-blink-group");
+
     // Get merged config (static + SugarCube variables)
     const cfg = getBlinkConfig();
 
     // Get or create state
-    const existing = controllers.get(charDisplayEl);
-    const state = existing || {
-      enabled: true,
+    let state;
+    let isGroupController = false;
 
-      // First blink window
-      firstMinMs: 450,
-      firstMaxMs: 1200,
+    if (blinkGroupId) {
+      // Group mode: use shared controller for this group
+      let groupCtrl = groupControllers.get(blinkGroupId);
+      if (!groupCtrl) {
+        // Create new group controller
+        state = {
+          enabled: true,
 
-      // Subsequent blink window
-      minIdleMs: 2500,
-      maxIdleMs: 6500,
+          // First blink window
+          firstMinMs: 450,
+          firstMaxMs: 1200,
 
-      // Phase timings
-      tHalf1Ms: 60,
-      tClosedMs: 80,
-      tHalf2Ms: 60,
+          // Subsequent blink window
+          minIdleMs: 2500,
+          maxIdleMs: 6500,
 
-      // Behavior
-      quickOnAttach: true,   // Always do quick blink on attach (great for inventory UX)
-      hasBlinkedOnce: false,
+          // Phase timings
+          tHalf1Ms: 60,
+          tClosedMs: 80,
+          tHalf2Ms: 60,
 
-      nextTimer: null,
-      phaseTimer: null
-    };
+          // Behavior
+          quickOnAttach: true,
+          hasBlinkedOnce: false,
+
+          nextTimer: null,
+          phaseTimer: null
+        };
+        groupCtrl = { state, displays: new Set() };
+        groupControllers.set(blinkGroupId, groupCtrl);
+        isGroupController = true;
+      } else {
+        // Use existing group controller
+        state = groupCtrl.state;
+        isGroupController = false;
+      }
+      // Add this display to the group
+      groupCtrl.displays.add(charDisplayEl);
+    } else {
+      // Individual mode: original behavior
+      const existing = controllers.get(charDisplayEl);
+      state = existing || {
+        enabled: true,
+
+        // First blink window
+        firstMinMs: 450,
+        firstMaxMs: 1200,
+
+        // Subsequent blink window
+        minIdleMs: 2500,
+        maxIdleMs: 6500,
+
+        // Phase timings
+        tHalf1Ms: 60,
+        tClosedMs: 80,
+        tHalf2Ms: 60,
+
+        // Behavior
+        quickOnAttach: true,   // Always do quick blink on attach (great for inventory UX)
+        hasBlinkedOnce: false,
+
+        nextTimer: null,
+        phaseTimer: null
+      };
+    }
 
     // ALWAYS apply config (so edits take effect even if controller already exists)
     if (typeof cfg.enabled === "boolean") state.enabled = cfg.enabled;
@@ -10091,42 +10516,83 @@ $(document).on(':storyinit', function () {
 
     if (typeof options.quickOnAttach === "boolean") state.quickOnAttach = options.quickOnAttach;
 
-    // Store controller
-    controllers.set(charDisplayEl, state);
+    // Store controller (only for individual mode)
+    if (!blinkGroupId) {
+      controllers.set(charDisplayEl, state);
+    }
 
     // Ensure starting frame is open
-    setEyesFrame(eyesEl, "open");
-
-    // Restart timers on every attach (prevents old long timers lingering)
-    clearTimers(state);
+    if (blinkGroupId) {
+      setEyesFrameForGroup(blinkGroupId, "open");
+    } else {
+      setEyesFrame(eyesEl, "open");
+    }
 
     if (!state.enabled) return;
 
-    // If quickOnAttach is on, we always do a quick "first blink window" when attached
-    // (great for inventory open so player notices)
-    if (state.quickOnAttach) {
-      const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
-      state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
-    } else if (!state.hasBlinkedOnce) {
-      // Only quick on the very first time ever
-      const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
-      state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+    if (blinkGroupId) {
+      // GROUP MODE:
+      // Start timers if this is the controller OR if the controller is currently not running.
+      const needsStart = isGroupController || (!state.nextTimer && !state.phaseTimer);
+
+      if (needsStart) {
+        clearTimers(state);
+
+        if (state.quickOnAttach) {
+          const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+          state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state, blinkGroupId), firstWait);
+        } else if (!state.hasBlinkedOnce) {
+          const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+          state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state, blinkGroupId), firstWait);
+        } else {
+          scheduleNext(charDisplayEl, state, blinkGroupId);
+        }
+      }
     } else {
-      // Normal cadence
-      scheduleNext(charDisplayEl, state);
+      // INDIVIDUAL MODE (unchanged logic)
+      clearTimers(state);
+
+      if (state.quickOnAttach) {
+        const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+        state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+      } else if (!state.hasBlinkedOnce) {
+        const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+        state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+      } else {
+        scheduleNext(charDisplayEl, state);
+      }
     }
   }
 
   function detach(charDisplayEl) {
-    const state = controllers.get(charDisplayEl);
-    if (!state) return;
+    const blinkGroupId = charDisplayEl.getAttribute("data-blink-group");
 
-    clearTimers(state);
-    controllers.delete(charDisplayEl);
+    if (blinkGroupId) {
+      // Group mode: remove from group
+      const groupCtrl = groupControllers.get(blinkGroupId);
+      if (groupCtrl) {
+        groupCtrl.displays.delete(charDisplayEl);
+        // If no displays left, clean up group controller
+        if (groupCtrl.displays.size === 0) {
+          clearTimers(groupCtrl.state);
+          groupControllers.delete(blinkGroupId);
+        }
+      }
+      // Reset to open if still present
+      const eyesEl = getEyesEl(charDisplayEl);
+      if (eyesEl) setEyesFrame(eyesEl, "open");
+    } else {
+      // Individual mode: original behavior
+      const state = controllers.get(charDisplayEl);
+      if (!state) return;
 
-    // Reset to open if still present
-    const eyesEl = getEyesEl(charDisplayEl);
-    if (eyesEl) setEyesFrame(eyesEl, "open");
+      clearTimers(state);
+      controllers.delete(charDisplayEl);
+
+      // Reset to open if still present
+      const eyesEl = getEyesEl(charDisplayEl);
+      if (eyesEl) setEyesFrame(eyesEl, "open");
+    }
   }
 
   function attachAll(root) {
@@ -10139,19 +10605,45 @@ $(document).on(':storyinit', function () {
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       // stop timers + reset to open
+      // Handle individual controllers
       document.querySelectorAll(".char-display").forEach(el => {
-        const state = controllers.get(el);
-        if (!state) return;
-        clearTimers(state);
-        const eyesEl = getEyesEl(el);
-        if (eyesEl) setEyesFrame(eyesEl, "open");
+        const blinkGroupId = el.getAttribute("data-blink-group");
+        if (blinkGroupId) {
+          // Group mode: reset all eyes in group
+          setEyesFrameForGroup(blinkGroupId, "open");
+        } else {
+          // Individual mode
+          const state = controllers.get(el);
+          if (!state) return;
+          clearTimers(state);
+          const eyesEl = getEyesEl(el);
+          if (eyesEl) setEyesFrame(eyesEl, "open");
+        }
+      });
+      // Clear all group controller timers
+      groupControllers.forEach(groupCtrl => {
+        clearTimers(groupCtrl.state);
       });
     } else {
       // resume
+      // Resume group controllers (only once per group)
+      const resumedGroups = new Set();
       document.querySelectorAll(".char-display").forEach(el => {
-        const state = controllers.get(el);
-        if (!state) return;
-        scheduleNext(el, state);
+        const blinkGroupId = el.getAttribute("data-blink-group");
+        if (blinkGroupId) {
+          if (!resumedGroups.has(blinkGroupId)) {
+            resumedGroups.add(blinkGroupId);
+            const groupCtrl = groupControllers.get(blinkGroupId);
+            if (groupCtrl) {
+              scheduleNext(el, groupCtrl.state, blinkGroupId);
+            }
+          }
+        } else {
+          // Individual mode
+          const state = controllers.get(el);
+          if (!state) return;
+          scheduleNext(el, state);
+        }
       });
     }
   });
@@ -10182,7 +10674,423 @@ $(document).on(':storyinit', function () {
     });
   }
 })();
-/* twine-user-script #27: "40-back-button.js" */
+/* twine-user-script #27: "34-mirror.js" */
+/* =========================================================================
+   Skycore System: Mirror Page (Mobile-first)
+   - Left: full body character display (same engine as inventory)
+   - Right: zoomed "portrait" using the same sprite stack (CSS transform)
+   - Independent blinking (uses its own blinkGroup "mirror")
+   - Easy position control via MIRROR_PORTRAIT_CONFIG
+   - Background zoom/position control via MIRROR_BACKGROUND_CONFIG
+   
+   Developer Controls:
+   - MIRROR_PORTRAIT_CONFIG: Adjust portrait zoom/position per screen size
+   - MIRROR_BACKGROUND_CONFIG: Adjust background image zoom/position per background type
+     Example: To zoom in bedroom background on mobile:
+       MIRROR_BACKGROUND_CONFIG.bedroom.mobile.scale = 1.5;
+       MIRROR_BACKGROUND_CONFIG.bedroom.mobile.x = -10; // shift left 10%
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  /**
+   * Portrait Position Configuration
+   * Easy adjustment for different screen sizes
+   * Values: scale (zoom), x (horizontal %), y (vertical %)
+   */
+  const MIRROR_PORTRAIT_CONFIG = {
+    // Mobile (default, < 768px)
+    mobile: {
+      scale: 4.5,
+      x: -1,  // negative = left, positive = right
+      y: 9,   // negative = up, positive = down
+    },
+    // Very small mobile (≤ 420px)
+    mobileSmall: {
+      scale: 4.6,
+      x: -1,
+      y: 8
+    },
+    // Desktop (≥ 768px)
+    desktop: {
+      scale: 3.2,
+      x: -1,
+      y: 22,
+    }
+  };
+
+  /**
+   * Background Position Configuration
+   * Developer control for background image zoom and position
+   * Per-background, per-screen-size configuration
+   * Values: scale (zoom multiplier), x (horizontal %), y (vertical %)
+   */
+  const MIRROR_BACKGROUND_CONFIG = {
+    // Bedroom background configuration
+    bedroom: {
+      // Mobile (default, < 768px)
+      mobile: {
+        scale: 1.0,  // 1.0 = no zoom, >1.0 = zoom in, <1.0 = zoom out
+        x: 0,        // 0 = center, negative = left, positive = right
+        y: 0,        // 0 = center, negative = up, positive = down
+      },
+      // Very small mobile (≤ 420px)
+      mobileSmall: {
+        scale: 1.5,
+        x: 15,
+        y: 10,
+      },
+      // Desktop (≥ 768px)
+      desktop: {
+        scale: 1,
+        x: 0,
+        y: 0,
+      }
+    },
+    // Bedroom vertical background configuration
+    "bedroom-vertical": {
+      // Mobile (default, < 768px)
+      mobile: {
+        scale: 1.0,
+        x: 0,
+        y: 0,
+      },
+      // Very small mobile (≤ 420px)
+      mobileSmall: {
+        scale: 1.0,
+        x: 0,
+        y: 0,
+      },
+      // Desktop (≥ 768px)
+      desktop: {
+        scale: 1.0,
+        x: 0,
+        y: 0,
+      }
+    },
+    // Add more backgrounds here as needed
+    // example: {
+    //   mobile: { scale: 1.2, x: -10, y: 5 },
+    //   mobileSmall: { scale: 1.3, x: -10, y: 5 },
+    //   desktop: { scale: 1.1, x: -10, y: 5 },
+    // }
+  };
+
+  // Requires inventory state (equipment) + character display.
+  const ensureState = Skycore.Systems.InventoryState?.ensureState;
+  if (!ensureState) {
+    console.error("34-mirror.js requires 03-inventory-state.js (InventoryState.ensureState)");
+    return;
+  }
+
+  /**
+   * Applies portrait position config to CSS custom properties
+   * @param {HTMLElement} portraitPanel - The portrait panel element
+   */
+  function applyPortraitConfig(portraitPanel) {
+    if (!portraitPanel) return;
+
+    const isMobileSmall = window.matchMedia("(max-width: 420px)").matches;
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+
+    let config;
+    if (isMobileSmall) {
+      config = MIRROR_PORTRAIT_CONFIG.mobileSmall;
+    } else if (isDesktop) {
+      config = MIRROR_PORTRAIT_CONFIG.desktop;
+    } else {
+      config = MIRROR_PORTRAIT_CONFIG.mobile;
+    }
+
+    portraitPanel.style.setProperty("--mirror-face-scale", config.scale.toString());
+    portraitPanel.style.setProperty("--mirror-face-x", `${config.x}%`);
+    portraitPanel.style.setProperty("--mirror-face-y", `${config.y}%`);
+  }
+
+  /**
+   * Applies background position config to CSS custom properties
+   * @param {HTMLElement} mirrorStage - The mirror stage element
+   * @param {string} bgType - Background type (e.g., "bedroom")
+   */
+  function applyBackgroundConfig(mirrorStage, bgType) {
+    if (!mirrorStage || !bgType) return;
+
+    const bgConfig = MIRROR_BACKGROUND_CONFIG[bgType];
+    if (!bgConfig) {
+      // No config for this background, use defaults
+      mirrorStage.style.setProperty("--mirror-bg-scale", "1");
+      mirrorStage.style.setProperty("--mirror-bg-x", "0%");
+      mirrorStage.style.setProperty("--mirror-bg-y", "0%");
+      return;
+    }
+
+    const isMobileSmall = window.matchMedia("(max-width: 420px)").matches;
+    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+
+    let config;
+    if (isMobileSmall) {
+      config = bgConfig.mobileSmall || bgConfig.mobile;
+    } else if (isDesktop) {
+      config = bgConfig.desktop || bgConfig.mobile;
+    } else {
+      config = bgConfig.mobile;
+    }
+
+    mirrorStage.style.setProperty("--mirror-bg-scale", config.scale.toString());
+    mirrorStage.style.setProperty("--mirror-bg-x", `${config.x}%`);
+    mirrorStage.style.setProperty("--mirror-bg-y", `${config.y}%`);
+  }
+
+  function renderMirrorUI() {
+    const canRender = Skycore.Systems.CharacterDisplay && Skycore.Systems.CharacterDisplay.render;
+
+    // Use independent blinkGroup "mirror" (not "mc") so it doesn't sync with inventory/sidebar
+    const bodyHTML = canRender
+      ? Skycore.Systems.CharacterDisplay.render({
+          showPresentation: false,
+          className: "char-display--mirror-body",
+          blinkGroup: "mirror"
+        })
+      : '<img src="assets/mc-naked.webp" alt="Character" style="width:100%;height:auto;">';
+
+    const faceHTML = canRender
+      ? Skycore.Systems.CharacterDisplay.render({
+          showPresentation: false,
+          className: "char-display--mirror-face",
+          blinkGroup: "mirror"
+        })
+      : '<img src="assets/mc-naked.webp" alt="Character" style="width:100%;height:auto;">';
+
+    // Get background setting from State.variables, default to "dark"
+    const bgSetting = State.variables?.settings?.mirrorBg || "dark";
+
+    // Blur setting (0..16px)
+    const blurSettingRaw = State.variables?.settings?.mirrorBgBlur;
+    const blurSetting = Number.isFinite(blurSettingRaw) ? blurSettingRaw : 6;
+    const blurClamped = Math.max(0, Math.min(16, blurSetting));
+
+    return `
+      <div class="mirror-stage"
+           data-bg="${bgSetting}"
+           style="--mirror-bg-blur: ${blurClamped}px;">
+        <div class="mirror-ui" data-mirror-root="1">
+          <section class="mirror-left" aria-label="Character (full)">
+            <div class="mirror-panel mirror-panel--body">
+              ${bodyHTML}
+            </div>
+          </section>
+
+          <section class="mirror-right" aria-label="Character portrait">
+            <div class="mirror-panel mirror-panel--portrait">
+              ${faceHTML}
+            </div>
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  Macro.add("mirror", {
+    handler() {
+      ensureState();
+
+      const wrap = document.createElement("div");
+      wrap.innerHTML = renderMirrorUI();
+      this.output.appendChild(wrap);
+
+      // Get background setting to apply background config
+      const bgSetting = State.variables?.settings?.mirrorBg || "dark";
+      const mirrorStage = wrap.querySelector(".mirror-stage");
+      if (mirrorStage) {
+        applyBackgroundConfig(mirrorStage, bgSetting);
+
+        // Update background config on resize (debounced)
+        let resizeTimer;
+        const updateBackgroundOnResize = () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            applyBackgroundConfig(mirrorStage, bgSetting);
+          }, 150);
+        };
+        window.addEventListener("resize", updateBackgroundOnResize);
+        // Clean up listener when passage changes
+        $(document).one(":passageend", () => {
+          window.removeEventListener("resize", updateBackgroundOnResize);
+        });
+      }
+
+      // Apply portrait position config based on screen size
+      const portraitPanel = wrap.querySelector(".mirror-panel--portrait");
+      if (portraitPanel) {
+        applyPortraitConfig(portraitPanel);
+
+        // Update on resize (debounced)
+        let resizeTimer;
+        const updateOnResize = () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            applyPortraitConfig(portraitPanel);
+          }, 150);
+        };
+        window.addEventListener("resize", updateOnResize);
+        // Clean up listener when passage changes
+        $(document).one(":passageend", () => {
+          window.removeEventListener("resize", updateOnResize);
+        });
+      }
+
+      // Ensure blink attaches (uses independent "mirror" group)
+      Skycore.Systems.EyeBlink?.attachAll?.(wrap);
+    }
+  });
+
+  // Export config for easy external adjustment
+  Skycore.Systems.Mirror = {
+    PORTRAIT_CONFIG: MIRROR_PORTRAIT_CONFIG,
+    BACKGROUND_CONFIG: MIRROR_BACKGROUND_CONFIG
+  };
+})();
+/* twine-user-script #28: "35-settings.js" */
+/* =========================================================================
+   Skycore System: Settings Page (Mirror Background)
+   - Stores values in State.variables.settings
+   - Background: dark | pink | bedroom
+   - Blur: 0..16px (applies via CSS var --mirror-bg-blur)
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  function ensureSettings() {
+    const sv = State.variables;
+    if (!sv.settings) sv.settings = {};
+    if (!sv.settings.mirrorBg) sv.settings.mirrorBg = "dark";
+    if (!Number.isFinite(sv.settings.mirrorBgBlur)) sv.settings.mirrorBgBlur = 6;
+    sv.settings.mirrorBgBlur = Math.max(0, Math.min(16, sv.settings.mirrorBgBlur));
+  }
+
+  function settingsHTML() {
+    const s = State.variables.settings;
+    const bg = s.mirrorBg || "dark";
+    const blur = Number.isFinite(s.mirrorBgBlur) ? s.mirrorBgBlur : 6;
+
+    const btn = (id, label) => `
+      <button type="button"
+              class="set-btn ${bg === id ? "is-active" : ""}"
+              data-set-bg="${id}">
+        ${label}
+      </button>
+    `;
+
+    return `
+      <div class="settings-page" data-settings-root="1">
+        <h2 class="settings-title">Settings</h2>
+
+        <div class="settings-block">
+          <div class="settings-label">Mirror background</div>
+          <div class="set-btn-row" role="group" aria-label="Mirror background">
+            ${btn("dark", "Dark")}
+            ${btn("pink", "Pink")}
+            ${btn("bedroom", "Bedroom")}
+            ${btn("bedroom-vertical", "Bedroom Vertical")}
+          </div>
+        </div>
+
+        <div class="settings-block">
+          <div class="settings-label">
+            Background blur <span class="settings-value" data-blur-value="1">${blur}px</span>
+          </div>
+          <input class="set-slider"
+                 type="range"
+                 min="0"
+                 max="16"
+                 step="1"
+                 value="${blur}"
+                 data-set-blur="1"
+                 aria-label="Background blur" />
+          <div class="settings-hint">Tip: blur helps readability on image backgrounds.</div>
+        </div>
+
+        <div class="settings-block">
+          <div class="settings-label">Preview</div>
+          <div class="mirror-stage settings-preview"
+               data-bg="${bg}"
+               style="--mirror-bg-blur:${blur}px;">
+            <div class="settings-preview-inner">
+              <div class="settings-preview-card">Full</div>
+              <div class="settings-preview-card">Portrait</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button type="button" class="set-btn set-btn--wide" data-open-mirror="1">
+            Open Mirror
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  function wire(root) {
+    root.addEventListener("click", (ev) => {
+      const bgBtn = ev.target.closest("[data-set-bg]");
+      if (bgBtn) {
+        ensureSettings();
+        State.variables.settings.mirrorBg = bgBtn.getAttribute("data-set-bg") || "dark";
+        // rerender Settings to update active state + preview
+        $("#passages").find("[data-settings-root]").replaceWith(settingsHTML());
+        // re-wire after replace
+        Skycore.Systems.Settings?.wireCurrent?.();
+        return;
+      }
+
+      const openMirror = ev.target.closest("[data-open-mirror]");
+      if (openMirror) {
+        Engine.play("Mirror");
+      }
+    });
+
+    root.addEventListener("input", (ev) => {
+      const slider = ev.target.closest("[data-set-blur]");
+      if (!slider) return;
+
+      ensureSettings();
+      const v = Math.max(0, Math.min(16, parseInt(slider.value, 10) || 0));
+      State.variables.settings.mirrorBgBlur = v;
+
+      const valEl = root.querySelector("[data-blur-value]");
+      if (valEl) valEl.textContent = `${v}px`;
+
+      const preview = root.querySelector(".settings-preview.mirror-stage");
+      if (preview) preview.style.setProperty("--mirror-bg-blur", `${v}px`);
+    });
+  }
+
+  Macro.add("settings", {
+    handler() {
+      ensureSettings();
+      const wrap = document.createElement("div");
+      wrap.innerHTML = settingsHTML();
+      this.output.appendChild(wrap);
+      wire(wrap);
+      // helper for rerender case
+      Skycore.Systems.Settings = Skycore.Systems.Settings || {};
+      Skycore.Systems.Settings.wireCurrent = () => {
+        const r = document.querySelector("[data-settings-root]");
+        if (r) wire(r);
+      };
+    }
+  });
+})();
+/* twine-user-script #29: "40-back-button.js" */
 /* =========================================================================
    Back Button System
 
@@ -10426,6 +11334,16 @@ A mirror glints. A drawer is half-open. Your phone is suspiciously silent.
 	&lt;&lt;link &quot;MC STATS&quot;&gt;&gt;
 		&lt;&lt;goto &quot;MC Stats&quot;&gt;&gt;
 	&lt;&lt;/link&gt;&gt;
+
+	&lt;&lt;link &quot;MIRROR&quot;&gt;&gt;
+		&lt;&lt;goto &quot;Mirror&quot;&gt;&gt;
+	&lt;&lt;/link&gt;&gt;
+
+	&lt;&lt;link &quot;SETTINGS&quot;&gt;&gt;
+		&lt;&lt;goto &quot;Settings&quot;&gt;&gt;
+	&lt;&lt;/link&gt;&gt;
+
+	
 &lt;/div&gt;</tw-passagedata><tw-passagedata pid="2" name="Inventory" tags="" position="225,100" size="100,100">&lt;&lt;gridInv&gt;&gt;
 
 &lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="3" name="Wardrobe" tags="" position="350,100" size="100,100">You open the wardrobe.
@@ -10435,7 +11353,11 @@ Right now it&#39;s just an ominous void with hangers that look judgmental.
 
 &lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="4" name="MC Stats" tags="" position="475,100" size="100,100">&lt;&lt;mcStats&gt;&gt;
 
-&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="5" name="NPC Widgets" tags="widget" position="600,100" size="100,100">&lt;&lt;widget &quot;displayNPC&quot;&gt;&gt;
+&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="5" name="Mirror" tags="" position="600,100" size="100,100">&lt;div id=&quot;mirrorRoot&quot;&gt;&lt;&lt;mirror&gt;&gt;&lt;/div&gt;
+
+&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="6" name="Settings" tags="" position="725,100" size="100,100">&lt;&lt;settings&gt;&gt;
+
+&lt;&lt;backButton &quot;Start&quot;&gt;&gt;</tw-passagedata><tw-passagedata pid="7" name="NPC Widgets" tags="widget" position="850,100" size="100,100">&lt;&lt;widget &quot;displayNPC&quot;&gt;&gt;
     &lt;&lt;set _npc = NPC.get(_args[0])&gt;&gt;
     &lt;div class=&quot;npc-profile&quot;&gt;
         &lt;h3&gt;_npc.name&lt;/h3&gt;

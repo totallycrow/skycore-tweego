@@ -12,6 +12,7 @@
   Skycore.Systems = Skycore.Systems || {};
 
   const controllers = new WeakMap();
+  const groupControllers = new Map(); // Map<blinkGroupId, { state, displays: Set<HTMLElement> }>
 
   function prefersReducedMotion() {
     return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -46,6 +47,17 @@
     return charDisplayEl?.querySelector?.(".char-display-sprite-eyes") || null;
   }
 
+  function getAllEyesInGroup(blinkGroupId) {
+    if (!blinkGroupId) return [];
+    const displays = document.querySelectorAll(`.char-display[data-blink-group="${blinkGroupId}"]`);
+    const eyes = [];
+    displays.forEach(display => {
+      const eyesEl = getEyesEl(display);
+      if (eyesEl) eyes.push(eyesEl);
+    });
+    return eyes;
+  }
+
   function clearTimers(state) {
     if (state.nextTimer) clearTimeout(state.nextTimer);
     if (state.phaseTimer) clearTimeout(state.phaseTimer);
@@ -59,41 +71,104 @@
     if (eyesEl && eyesEl.src !== src) eyesEl.src = src;
   }
 
-  function scheduleNext(charDisplayEl, state) {
-    clearTimers(state);
-    if (!state.enabled) return;
-    if (!charDisplayEl.isConnected) return;
-
-    const wait = randInt(state.minIdleMs, state.maxIdleMs);
-    state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), wait);
+  function setEyesFrameForGroup(blinkGroupId, frameKey) {
+    const eyesElements = getAllEyesInGroup(blinkGroupId);
+    eyesElements.forEach(eyesEl => setEyesFrame(eyesEl, frameKey));
   }
 
-  function blinkOnce(charDisplayEl, state) {
+  function scheduleNext(charDisplayEl, state, blinkGroupId = null) {
+    clearTimers(state);
     if (!state.enabled) return;
-    if (document.hidden) return;
-    if (!charDisplayEl.isConnected) return;
+    if (blinkGroupId) {
+      // Group mode: check if any display in group is still connected
+      const displays = document.querySelectorAll(`.char-display[data-blink-group="${blinkGroupId}"]`);
+      const hasConnected = Array.from(displays).some(el => el.isConnected);
+      if (!hasConnected) {
+        clearTimers(state);
+        return;
+      }
+    } else {
+      // Individual mode: check this display
+      if (!charDisplayEl.isConnected) {
+        clearTimers(state);
+        return;
+      }
+    }
 
-    const eyesEl = getEyesEl(charDisplayEl);
-    if (!eyesEl) {
-      // The character display is being re-rendered (e.g. applying item sets).
-      // Do NOT let the blink controller die—just try again later.
-      scheduleNext(charDisplayEl, state);
+    const wait = randInt(state.minIdleMs, state.maxIdleMs);
+    state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state, blinkGroupId), wait);
+  }
+
+  function blinkOnce(charDisplayEl, state, blinkGroupId = null) {
+    if (!state.enabled) return;
+
+    // IMPORTANT: if tab hidden, stop timers so controller can restart later
+    if (document.hidden) {
+      clearTimers(state);
       return;
     }
 
-    // half -> closed -> half -> open (delicate)
-    setEyesFrame(eyesEl, "half");
-    state.phaseTimer = setTimeout(() => {
-      setEyesFrame(eyesEl, "closed");
+    if (blinkGroupId) {
+      // Group mode: check if any display in group is still connected
+      const displays = document.querySelectorAll(`.char-display[data-blink-group="${blinkGroupId}"]`);
+      const hasConnected = Array.from(displays).some(el => el.isConnected);
+
+      // IMPORTANT: if nobody is connected, stop timers (prevents "dead" controller)
+      if (!hasConnected) {
+        clearTimers(state);
+        return;
+      }
+
+      // Check if eyes elements exist in any display
+      const eyesElements = getAllEyesInGroup(blinkGroupId);
+      if (eyesElements.length === 0) {
+        // Eyes are being re-rendered, try again later
+        scheduleNext(charDisplayEl, state, blinkGroupId);
+        return;
+      }
+
+      // Blink all eyes in group simultaneously
+      setEyesFrameForGroup(blinkGroupId, "half");
       state.phaseTimer = setTimeout(() => {
-        setEyesFrame(eyesEl, "half");
+        setEyesFrameForGroup(blinkGroupId, "closed");
         state.phaseTimer = setTimeout(() => {
-          setEyesFrame(eyesEl, "open");
-          state.hasBlinkedOnce = true;
-          scheduleNext(charDisplayEl, state);
-        }, state.tHalf2Ms);
-      }, state.tClosedMs);
-    }, state.tHalf1Ms);
+          setEyesFrameForGroup(blinkGroupId, "half");
+          state.phaseTimer = setTimeout(() => {
+            setEyesFrameForGroup(blinkGroupId, "open");
+            state.hasBlinkedOnce = true;
+            scheduleNext(charDisplayEl, state, blinkGroupId);
+          }, state.tHalf2Ms);
+        }, state.tClosedMs);
+      }, state.tHalf1Ms);
+    } else {
+      // Individual mode: original behavior
+      if (!charDisplayEl.isConnected) {
+        clearTimers(state);
+        return;
+      }
+
+      const eyesEl = getEyesEl(charDisplayEl);
+      if (!eyesEl) {
+        // The character display is being re-rendered (e.g. applying item sets).
+        // Do NOT let the blink controller die—just try again later.
+        scheduleNext(charDisplayEl, state);
+        return;
+      }
+
+      // half -> closed -> half -> open (delicate)
+      setEyesFrame(eyesEl, "half");
+      state.phaseTimer = setTimeout(() => {
+        setEyesFrame(eyesEl, "closed");
+        state.phaseTimer = setTimeout(() => {
+          setEyesFrame(eyesEl, "half");
+          state.phaseTimer = setTimeout(() => {
+            setEyesFrame(eyesEl, "open");
+            state.hasBlinkedOnce = true;
+            scheduleNext(charDisplayEl, state);
+          }, state.tHalf2Ms);
+        }, state.tClosedMs);
+      }, state.tHalf1Ms);
+    }
   }
 
   function attach(charDisplayEl, options = {}) {
@@ -103,34 +178,81 @@
     const eyesEl = getEyesEl(charDisplayEl);
     if (!eyesEl) return; // eyes layer not present -> nothing to animate
 
+    // Check if this display is part of a blink group
+    const blinkGroupId = charDisplayEl.getAttribute("data-blink-group");
+
     // Get merged config (static + SugarCube variables)
     const cfg = getBlinkConfig();
 
     // Get or create state
-    const existing = controllers.get(charDisplayEl);
-    const state = existing || {
-      enabled: true,
+    let state;
+    let isGroupController = false;
 
-      // First blink window
-      firstMinMs: 450,
-      firstMaxMs: 1200,
+    if (blinkGroupId) {
+      // Group mode: use shared controller for this group
+      let groupCtrl = groupControllers.get(blinkGroupId);
+      if (!groupCtrl) {
+        // Create new group controller
+        state = {
+          enabled: true,
 
-      // Subsequent blink window
-      minIdleMs: 2500,
-      maxIdleMs: 6500,
+          // First blink window
+          firstMinMs: 450,
+          firstMaxMs: 1200,
 
-      // Phase timings
-      tHalf1Ms: 60,
-      tClosedMs: 80,
-      tHalf2Ms: 60,
+          // Subsequent blink window
+          minIdleMs: 2500,
+          maxIdleMs: 6500,
 
-      // Behavior
-      quickOnAttach: true,   // Always do quick blink on attach (great for inventory UX)
-      hasBlinkedOnce: false,
+          // Phase timings
+          tHalf1Ms: 60,
+          tClosedMs: 80,
+          tHalf2Ms: 60,
 
-      nextTimer: null,
-      phaseTimer: null
-    };
+          // Behavior
+          quickOnAttach: true,
+          hasBlinkedOnce: false,
+
+          nextTimer: null,
+          phaseTimer: null
+        };
+        groupCtrl = { state, displays: new Set() };
+        groupControllers.set(blinkGroupId, groupCtrl);
+        isGroupController = true;
+      } else {
+        // Use existing group controller
+        state = groupCtrl.state;
+        isGroupController = false;
+      }
+      // Add this display to the group
+      groupCtrl.displays.add(charDisplayEl);
+    } else {
+      // Individual mode: original behavior
+      const existing = controllers.get(charDisplayEl);
+      state = existing || {
+        enabled: true,
+
+        // First blink window
+        firstMinMs: 450,
+        firstMaxMs: 1200,
+
+        // Subsequent blink window
+        minIdleMs: 2500,
+        maxIdleMs: 6500,
+
+        // Phase timings
+        tHalf1Ms: 60,
+        tClosedMs: 80,
+        tHalf2Ms: 60,
+
+        // Behavior
+        quickOnAttach: true,   // Always do quick blink on attach (great for inventory UX)
+        hasBlinkedOnce: false,
+
+        nextTimer: null,
+        phaseTimer: null
+      };
+    }
 
     // ALWAYS apply config (so edits take effect even if controller already exists)
     if (typeof cfg.enabled === "boolean") state.enabled = cfg.enabled;
@@ -162,42 +284,83 @@
 
     if (typeof options.quickOnAttach === "boolean") state.quickOnAttach = options.quickOnAttach;
 
-    // Store controller
-    controllers.set(charDisplayEl, state);
+    // Store controller (only for individual mode)
+    if (!blinkGroupId) {
+      controllers.set(charDisplayEl, state);
+    }
 
     // Ensure starting frame is open
-    setEyesFrame(eyesEl, "open");
-
-    // Restart timers on every attach (prevents old long timers lingering)
-    clearTimers(state);
+    if (blinkGroupId) {
+      setEyesFrameForGroup(blinkGroupId, "open");
+    } else {
+      setEyesFrame(eyesEl, "open");
+    }
 
     if (!state.enabled) return;
 
-    // If quickOnAttach is on, we always do a quick "first blink window" when attached
-    // (great for inventory open so player notices)
-    if (state.quickOnAttach) {
-      const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
-      state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
-    } else if (!state.hasBlinkedOnce) {
-      // Only quick on the very first time ever
-      const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
-      state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+    if (blinkGroupId) {
+      // GROUP MODE:
+      // Start timers if this is the controller OR if the controller is currently not running.
+      const needsStart = isGroupController || (!state.nextTimer && !state.phaseTimer);
+
+      if (needsStart) {
+        clearTimers(state);
+
+        if (state.quickOnAttach) {
+          const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+          state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state, blinkGroupId), firstWait);
+        } else if (!state.hasBlinkedOnce) {
+          const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+          state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state, blinkGroupId), firstWait);
+        } else {
+          scheduleNext(charDisplayEl, state, blinkGroupId);
+        }
+      }
     } else {
-      // Normal cadence
-      scheduleNext(charDisplayEl, state);
+      // INDIVIDUAL MODE (unchanged logic)
+      clearTimers(state);
+
+      if (state.quickOnAttach) {
+        const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+        state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+      } else if (!state.hasBlinkedOnce) {
+        const firstWait = randInt(state.firstMinMs, state.firstMaxMs);
+        state.nextTimer = setTimeout(() => blinkOnce(charDisplayEl, state), firstWait);
+      } else {
+        scheduleNext(charDisplayEl, state);
+      }
     }
   }
 
   function detach(charDisplayEl) {
-    const state = controllers.get(charDisplayEl);
-    if (!state) return;
+    const blinkGroupId = charDisplayEl.getAttribute("data-blink-group");
 
-    clearTimers(state);
-    controllers.delete(charDisplayEl);
+    if (blinkGroupId) {
+      // Group mode: remove from group
+      const groupCtrl = groupControllers.get(blinkGroupId);
+      if (groupCtrl) {
+        groupCtrl.displays.delete(charDisplayEl);
+        // If no displays left, clean up group controller
+        if (groupCtrl.displays.size === 0) {
+          clearTimers(groupCtrl.state);
+          groupControllers.delete(blinkGroupId);
+        }
+      }
+      // Reset to open if still present
+      const eyesEl = getEyesEl(charDisplayEl);
+      if (eyesEl) setEyesFrame(eyesEl, "open");
+    } else {
+      // Individual mode: original behavior
+      const state = controllers.get(charDisplayEl);
+      if (!state) return;
 
-    // Reset to open if still present
-    const eyesEl = getEyesEl(charDisplayEl);
-    if (eyesEl) setEyesFrame(eyesEl, "open");
+      clearTimers(state);
+      controllers.delete(charDisplayEl);
+
+      // Reset to open if still present
+      const eyesEl = getEyesEl(charDisplayEl);
+      if (eyesEl) setEyesFrame(eyesEl, "open");
+    }
   }
 
   function attachAll(root) {
@@ -210,19 +373,45 @@
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       // stop timers + reset to open
+      // Handle individual controllers
       document.querySelectorAll(".char-display").forEach(el => {
-        const state = controllers.get(el);
-        if (!state) return;
-        clearTimers(state);
-        const eyesEl = getEyesEl(el);
-        if (eyesEl) setEyesFrame(eyesEl, "open");
+        const blinkGroupId = el.getAttribute("data-blink-group");
+        if (blinkGroupId) {
+          // Group mode: reset all eyes in group
+          setEyesFrameForGroup(blinkGroupId, "open");
+        } else {
+          // Individual mode
+          const state = controllers.get(el);
+          if (!state) return;
+          clearTimers(state);
+          const eyesEl = getEyesEl(el);
+          if (eyesEl) setEyesFrame(eyesEl, "open");
+        }
+      });
+      // Clear all group controller timers
+      groupControllers.forEach(groupCtrl => {
+        clearTimers(groupCtrl.state);
       });
     } else {
       // resume
+      // Resume group controllers (only once per group)
+      const resumedGroups = new Set();
       document.querySelectorAll(".char-display").forEach(el => {
-        const state = controllers.get(el);
-        if (!state) return;
-        scheduleNext(el, state);
+        const blinkGroupId = el.getAttribute("data-blink-group");
+        if (blinkGroupId) {
+          if (!resumedGroups.has(blinkGroupId)) {
+            resumedGroups.add(blinkGroupId);
+            const groupCtrl = groupControllers.get(blinkGroupId);
+            if (groupCtrl) {
+              scheduleNext(el, groupCtrl.state, blinkGroupId);
+            }
+          }
+        } else {
+          // Individual mode
+          const state = controllers.get(el);
+          if (!state) return;
+          scheduleNext(el, state);
+        }
       });
     }
   });
