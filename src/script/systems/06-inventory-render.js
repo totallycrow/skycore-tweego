@@ -261,10 +261,14 @@
 
   function renderUI(activeTab = "inventory") {
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    // Use helper function if available
+    const { isFilterActive } = Skycore.Systems.InventoryHelpers || {};
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
 
     // Validate state before accessing

@@ -140,9 +140,11 @@
         initialFocusElement ||
         (getFocusableElements(overlay)[0] || null);
 
-      if (target && typeof target.focus === "function") {
+      // Use FocusManager if available
+      if (Skycore.Systems.FocusManager && Skycore.Systems.FocusManager.safeFocus) {
+        Skycore.Systems.FocusManager.safeFocus(target);
+      } else if (target && typeof target.focus === "function") {
         requestAnimationFrame(() => {
-          // target is a stable reference; not affected by later variable resets
           target.focus({ preventScroll: true });
         });
       }
@@ -169,16 +171,15 @@
       // Unlock scroll
       unlockBodyScroll();
 
-      // Restore focus safely
-      if (
-        restoreFocus &&
-        prev &&
-        typeof prev.focus === "function" &&
-        document.contains(prev)
-      ) {
-        requestAnimationFrame(() => {
-          prev.focus({ preventScroll: true });
-        });
+      // Restore focus safely (use FocusManager if available)
+      if (restoreFocus && prev && document.contains(prev)) {
+        if (Skycore.Systems.FocusManager && Skycore.Systems.FocusManager.safeFocus) {
+          Skycore.Systems.FocusManager.safeFocus(prev);
+        } else if (typeof prev.focus === "function") {
+          requestAnimationFrame(() => {
+            prev.focus({ preventScroll: true });
+          });
+        }
       }
 
       // Remove escape handler if no modals remain (prevent memory leak)

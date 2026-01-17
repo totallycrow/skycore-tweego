@@ -4051,7 +4051,224 @@ $(document).on(':storyinit', function () {
   $(document).on(":passagestart", hardUnlockUI);
   window.addEventListener("pageshow", (e) => { if (e.persisted) hardUnlockUI(); });
 })();
-/* twine-user-script #6: "01-inventory-config.js" */
+/* twine-user-script #6: "01-error-handler.js" */
+/* =========================================================================
+   Error Handler: Standardized Error Handling
+   
+   Provides consistent error handling patterns across the application.
+   All functions should use this module for error reporting.
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  /**
+   * Creates a standardized result object for operations
+   * @param {boolean} ok - Whether the operation succeeded
+   * @param {*} data - Result data (if ok) or error details (if not ok)
+   * @param {string} message - Human-readable message
+   * @returns {Object} Result object
+   */
+  function createResult(ok, data = null, message = "") {
+    return {
+      ok,
+      data,
+      message,
+      timestamp: Date.now()
+    };
+  }
+
+  /**
+   * Creates a success result
+   * @param {*} data - Result data
+   * @param {string} message - Success message (optional)
+   * @returns {Object} Success result object
+   */
+  function success(data = null, message = "") {
+    return createResult(true, data, message);
+  }
+
+  /**
+   * Creates an error result
+   * @param {string} reason - Error reason/code
+   * @param {string} message - Human-readable error message
+   * @param {*} details - Additional error details (optional)
+   * @returns {Object} Error result object
+   */
+  function error(reason, message, details = null) {
+    return createResult(false, { reason, details }, message);
+  }
+
+  /**
+   * Logs an error with context
+   * @param {string} context - Context where error occurred (e.g., function name)
+   * @param {Error|string} err - Error object or message
+   * @param {Object} details - Additional context details
+   */
+  function logError(context, err, details = {}) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    const errorStack = err instanceof Error ? err.stack : undefined;
+
+    console.warn(`[${context}] ${errorMessage}`, {
+      ...details,
+      stack: errorStack
+    });
+  }
+
+  /**
+   * Wraps a function with error handling
+   * @param {Function} fn - Function to wrap
+   * @param {string} context - Context name for error logging
+   * @returns {Function} Wrapped function
+   */
+  function wrapWithErrorHandling(fn, context) {
+    return function (...args) {
+      try {
+        const result = fn.apply(this, args);
+        // If result is a promise, catch errors
+        if (result && typeof result.then === "function") {
+          return result.catch(err => {
+            logError(context, err, { args });
+            return error("exception", err.message || "An error occurred");
+          });
+        }
+        return result;
+      } catch (err) {
+        logError(context, err, { args });
+        return error("exception", err.message || "An error occurred");
+      }
+    };
+  }
+
+  Skycore.Systems.ErrorHandler = {
+    createResult,
+    success,
+    error,
+    logError,
+    wrapWithErrorHandling
+  };
+})();
+/* twine-user-script #7: "01-focus-manager.js" */
+/* =========================================================================
+   Focus Manager: Centralized Focus Management
+   
+   Provides consistent focus handling across the application, especially
+   important for mobile UX and accessibility.
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Systems = Skycore.Systems || {};
+
+  /**
+   * Blurs the active element if it's within the given root container
+   * @param {HTMLElement} root - Root container element (optional, if not provided, blurs any active interactive element)
+   */
+  function blurActiveIfInsideRoot(root) {
+    const ae = document.activeElement;
+    if (!ae || !(ae instanceof HTMLElement)) {
+      return;
+    }
+
+    // If root is provided, check if active element is inside it
+    if (root && root instanceof HTMLElement) {
+      if (!root.contains(ae)) {
+        return;
+      }
+    }
+
+    // Only blur interactive controls
+    const tag = ae.tagName;
+    if (tag === "BUTTON" || tag === "A" || ae.classList.contains("inv-slot") || ae.classList.contains("inv-btn")) {
+      ae.blur();
+    }
+  }
+
+  /**
+   * Resets focus by moving it away from the current element
+   * Useful for preventing iOS focus stickiness after touch interactions
+   */
+  function resetFocus() {
+    // Create a temporary invisible button, focus it, then remove it
+    // This forces iOS to move focus away from the clicked button
+    const temp = document.createElement("button");
+    temp.style.position = "fixed";
+    temp.style.opacity = "0";
+    temp.style.pointerEvents = "none";
+    temp.style.width = "1px";
+    temp.style.height = "1px";
+    temp.style.top = "-9999px";
+    document.body.appendChild(temp);
+    temp.focus();
+    temp.click();
+    setTimeout(() => {
+      try {
+        document.body.removeChild(temp);
+      } catch (e) {
+        // Ignore errors if element was already removed
+      }
+    }, 0);
+  }
+
+  /**
+   * Blurs the active element if it's an interactive element
+   * @param {HTMLElement} element - Element to blur (optional, defaults to activeElement)
+   */
+  function blurActive(element) {
+    const target = element || document.activeElement;
+    if (target && target instanceof HTMLElement && typeof target.blur === "function") {
+      target.blur();
+      // Double-check as fallback
+      if (document.activeElement === target) {
+        setTimeout(() => {
+          if (document.activeElement === target) {
+            document.activeElement.blur();
+          }
+        }, 0);
+      }
+    }
+  }
+
+  /**
+   * Safely focuses an element with scroll prevention
+   * @param {HTMLElement} element - Element to focus
+   * @param {Object} options - Focus options
+   */
+  function safeFocus(element, options = {}) {
+    if (!element || typeof element.focus !== "function") {
+      return false;
+    }
+
+    const focusOptions = {
+      preventScroll: true,
+      ...options
+    };
+
+    requestAnimationFrame(() => {
+      try {
+        element.focus(focusOptions);
+      } catch (e) {
+        // Some browsers may not support focus options
+        element.focus();
+      }
+    });
+
+    return true;
+  }
+
+  Skycore.Systems.FocusManager = {
+    blurActiveIfInsideRoot,
+    resetFocus,
+    blurActive,
+    safeFocus
+  };
+})();
+/* twine-user-script #8: "01-inventory-config.js" */
 /* =========================================================================
    Inventory System: Configuration
 ========================================================================= */
@@ -4081,7 +4298,71 @@ $(document).on(':storyinit', function () {
     WARD_MIN_SIZE
   };
 })();
-/* twine-user-script #7: "02-inventory-helpers.js" */
+/* twine-user-script #9: "01-ui-constants.js" */
+/* =========================================================================
+   UI Constants: Centralized Magic Numbers and Configuration
+   
+   All magic numbers, z-index values, and UI constants should be defined here
+   for easy maintenance and consistency across the codebase.
+========================================================================= */
+
+(function () {
+  "use strict";
+
+  window.Skycore = window.Skycore || {};
+  Skycore.Config = Skycore.Config || {};
+  Skycore.Config.UI = Skycore.Config.UI || {};
+
+  // ---- Touch Target Sizes (WCAG 2.1 Level AAA minimum: 44×44px) -----------
+  Skycore.Config.UI.TouchTargets = Object.freeze({
+    MIN_SIZE: 44,        // Minimum touch target size (px)
+    BUTTON_HEIGHT: 48,  // Standard button height (px)
+    SMALL_BUTTON: 40    // Smaller interactive elements (px)
+  });
+
+  // ---- Component Heights ----------------------------------------------------
+  Skycore.Config.UI.Heights = Object.freeze({
+    PRESENTATION_BAR: 56,  // Presentation score bar height (px)
+    VIBES_BAR: 60,         // Outfit vibes bar height (px)
+    MODAL_HEADER: 56       // Modal header height (px)
+  });
+
+  // ---- Z-Index Layers (ordered from lowest to highest) ----------------------
+  Skycore.Config.UI.ZIndex = Object.freeze({
+    BASE: 1,
+    BACK_BUTTON: 1000,
+    SIDEBAR: 2000,
+    DRAG_GHOST: 9999,
+    MODAL: 10000
+  });
+
+  // ---- Offscreen Positioning ------------------------------------------------
+  Skycore.Config.UI.Offscreen = Object.freeze({
+    HIDDEN_X: -9999,  // X position for hidden elements (px)
+    HIDDEN_Y: -9999   // Y position for hidden elements (px)
+  });
+
+  // ---- Responsive Breakpoints -----------------------------------------------
+  Skycore.Config.UI.Breakpoints = Object.freeze({
+    SMALL_PHONE: 360,   // Small phone max width (px)
+    MOBILE: 600,        // Mobile max width (px)
+    TABLET: 768,        // Tablet max width (px)
+    DESKTOP: 1024       // Desktop min width (px)
+  });
+
+  // ---- Animation Durations (ms) ---------------------------------------------
+  Skycore.Config.UI.Animation = Object.freeze({
+    FAST: 80,           // Fast transitions (ms)
+    NORMAL: 200,        // Normal transitions (ms)
+    SLOW: 500           // Slow transitions (ms)
+  });
+
+  // ---- Slot Sizing ----------------------------------------------------------
+  Skycore.Config.UI.Slots = Object.freeze({
+    SMALL_PHONE_SIZE: 56  // Slot size on small phones (px)
+  });
+})();
+/* twine-user-script #10: "02-inventory-helpers.js" */
 /* =========================================================================
    Inventory System: Helper Functions
 ========================================================================= */
@@ -4244,7 +4525,7 @@ $(document).on(':storyinit', function () {
     resizeArray
   };
 })();
-/* twine-user-script #8: "03-inventory-state.js" */
+/* twine-user-script #11: "03-inventory-state.js" */
 /* =========================================================================
    Inventory System: State Management
 ========================================================================= */
@@ -4451,7 +4732,7 @@ $(document).on(':storyinit', function () {
     ensureState
   };
 })();
-/* twine-user-script #9: "04-inventory-wardrobe.js" */
+/* twine-user-script #12: "04-inventory-wardrobe.js" */
 /* =========================================================================
    Inventory System: Wardrobe Management
 ========================================================================= */
@@ -4535,7 +4816,7 @@ $(document).on(':storyinit', function () {
     placeInWardrobe
   };
 })();
-/* twine-user-script #10: "05-inventory-effects.js" */
+/* twine-user-script #13: "05-inventory-effects.js" */
 /* =========================================================================
    Inventory System: Use Effects
 ========================================================================= */
@@ -4640,7 +4921,7 @@ $(document).on(':storyinit', function () {
     buildAfterUseMessage
   };
 })();
-/* twine-user-script #11: "06-inventory-render.js" */
+/* twine-user-script #14: "06-inventory-render.js" */
 /* =========================================================================
    Inventory System: Rendering
 ========================================================================= */
@@ -4904,10 +5185,14 @@ $(document).on(':storyinit', function () {
 
   function renderUI(activeTab = "inventory") {
     const filter = State.variables.invSys?.filter || null;
-    const hasFilter = filter && (
-      (Array.isArray(filter.category) && filter.category.length > 0) ||
-      (Array.isArray(filter.type) && filter.type.length > 0) ||
-      (Array.isArray(filter.slot) && filter.slot.length > 0)
+    // Use helper function if available
+    const { isFilterActive } = Skycore.Systems.InventoryHelpers || {};
+    const hasFilter = isFilterActive ? isFilterActive(filter) : (
+      filter && (
+        (Array.isArray(filter.category) && filter.category.length > 0) ||
+        (Array.isArray(filter.type) && filter.type.length > 0) ||
+        (Array.isArray(filter.slot) && filter.slot.length > 0)
+      )
     );
 
     // Validate state before accessing
@@ -5171,7 +5456,7 @@ $(document).on(':storyinit', function () {
     renderVibesModule
   };
 })();
-/* twine-user-script #12: "07-inventory-dom.js" */
+/* twine-user-script #15: "07-inventory-dom.js" */
 /* =========================================================================
    Inventory System: DOM Updates
 ========================================================================= */
@@ -5610,7 +5895,7 @@ $(document).on(':storyinit', function () {
     updateSetsList
   };
 })();
-/* twine-user-script #13: "08-inventory-modals.js" */
+/* twine-user-script #16: "08-inventory-modals.js" */
 /* =========================================================================
    Inventory System: Modals
 ========================================================================= */
@@ -5753,9 +6038,11 @@ $(document).on(':storyinit', function () {
         initialFocusElement ||
         (getFocusableElements(overlay)[0] || null);
 
-      if (target && typeof target.focus === "function") {
+      // Use FocusManager if available
+      if (Skycore.Systems.FocusManager && Skycore.Systems.FocusManager.safeFocus) {
+        Skycore.Systems.FocusManager.safeFocus(target);
+      } else if (target && typeof target.focus === "function") {
         requestAnimationFrame(() => {
-          // target is a stable reference; not affected by later variable resets
           target.focus({ preventScroll: true });
         });
       }
@@ -5782,16 +6069,15 @@ $(document).on(':storyinit', function () {
       // Unlock scroll
       unlockBodyScroll();
 
-      // Restore focus safely
-      if (
-        restoreFocus &&
-        prev &&
-        typeof prev.focus === "function" &&
-        document.contains(prev)
-      ) {
-        requestAnimationFrame(() => {
-          prev.focus({ preventScroll: true });
-        });
+      // Restore focus safely (use FocusManager if available)
+      if (restoreFocus && prev && document.contains(prev)) {
+        if (Skycore.Systems.FocusManager && Skycore.Systems.FocusManager.safeFocus) {
+          Skycore.Systems.FocusManager.safeFocus(prev);
+        } else if (typeof prev.focus === "function") {
+          requestAnimationFrame(() => {
+            prev.focus({ preventScroll: true });
+          });
+        }
       }
 
       // Remove escape handler if no modals remain (prevent memory leak)
@@ -6769,7 +7055,7 @@ $(document).on(':storyinit', function () {
     CreateSetModal
   };
 })();
-/* twine-user-script #14: "09-inventory-actions.js" */
+/* twine-user-script #17: "09-inventory-actions.js" */
 /* =========================================================================
    Inventory System: Bulk Actions
 ========================================================================= */
@@ -7214,7 +7500,7 @@ $(document).on(':storyinit', function () {
     removeSet
   };
 })();
-/* twine-user-script #15: "10-inventory-tabs.js" */
+/* twine-user-script #18: "10-inventory-tabs.js" */
 /* =========================================================================
    Inventory System: Tab Management
 ========================================================================= */
@@ -7254,7 +7540,7 @@ $(document).on(':storyinit', function () {
     setActiveTab
   };
 })();
-/* twine-user-script #16: "11-inventory-drag.js" */
+/* twine-user-script #19: "11-inventory-drag.js" */
 /* =========================================================================
    Inventory System: Drag and Drop
 ========================================================================= */
@@ -7266,12 +7552,14 @@ $(document).on(':storyinit', function () {
   Skycore.Systems = Skycore.Systems || {};
 
   const { CFG } = Skycore.Systems.InventoryConfig;
-  const { getItem, getAreaArray, isWearableClothes, getEquipSlot, findEquippedIndexBySlot, firstEmptyIndex } = Skycore.Systems.InventoryHelpers;
+  const { getItem, getAreaArray, isWearableClothes, getEquipSlot, findEquippedIndexBySlot, firstEmptyIndex, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { updateSlotEl, rerenderWardrobeGrid, clearDropTargets } = Skycore.Systems.InventoryDOM;
   const { placeInWardrobe, compactWardrobe, ensureWardrobeHasEmptyRow, expandWardrobeOneRow } = Skycore.Systems.InventoryWardrobe;
   const { AlertModal, ConfirmModal, ItemModal, FilterModal } = Skycore.Systems.InventoryModals;
   const { cleanUpEquipped, cleanUpInventory, cleanUpWardrobe, unequipAll, sendAllInventoryToWardrobe, sendAllWardrobeToInventory } = Skycore.Systems.InventoryActions;
   const { setActiveTab } = Skycore.Systems.InventoryTabs;
+  const { blurActiveIfInsideRoot, resetFocus, blurActive } = Skycore.Systems.FocusManager || {};
+  const { Offscreen } = Skycore.Config?.UI || {};
 
   // ---- Pointer interactions: tap vs drag ---------------------------------
   function bindInteractions(root) {
@@ -7279,37 +7567,33 @@ $(document).on(':storyinit', function () {
     if (root.hasAttribute("data-interactions-bound")) return;
     root.setAttribute("data-interactions-bound", "true");
     
-    function blurActiveIfInsideRoot() {
+    // Use centralized FocusManager if available, otherwise use local implementation
+    const blurActiveIfInsideRootFn = blurActiveIfInsideRoot || function(container) {
       const ae = document.activeElement;
-      if (!ae) return;
-      if (!(ae instanceof HTMLElement)) return;
-      if (!root.contains(ae)) return;
-    
-      // Only blur interactive controls (prevents annoying blur on other things)
+      if (!ae || !(ae instanceof HTMLElement)) return;
+      const containerEl = container || root;
+      if (containerEl && containerEl instanceof HTMLElement && !containerEl.contains(ae)) return;
       const tag = ae.tagName;
       if (tag === "BUTTON" || tag === "A" || ae.classList.contains("inv-slot") || ae.classList.contains("inv-btn")) {
         ae.blur();
       }
-    }
+    };
 
-    // Function to reset focus by simulating a background click (iOS workaround)
-    function resetFocus() {
-      // Create a temporary invisible button, click it, then remove it
-      // This forces iOS to move focus away from the clicked button
+    const resetFocusFn = resetFocus || function() {
       const temp = document.createElement("button");
       temp.style.position = "fixed";
       temp.style.opacity = "0";
       temp.style.pointerEvents = "none";
       temp.style.width = "1px";
       temp.style.height = "1px";
-      temp.style.top = "-9999px";
+      temp.style.top = (Offscreen && Offscreen.HIDDEN_Y) ? `${Offscreen.HIDDEN_Y}px` : "-9999px";
       document.body.appendChild(temp);
       temp.focus();
       temp.click();
       setTimeout(() => {
         try { document.body.removeChild(temp); } catch(e) {}
       }, 0);
-    }
+    };
 
     // Tabs
     root.addEventListener("click", (ev) => {
@@ -7317,7 +7601,7 @@ $(document).on(':storyinit', function () {
       if (tabBtn) {
         setActiveTab(root, tabBtn.dataset.tabBtn);
         // Reset focus by clicking background to prevent iOS focus stickiness
-        setTimeout(resetFocus, 0);
+        setTimeout(resetFocusFn, 0);
         return;
       }
 
@@ -7339,12 +7623,14 @@ $(document).on(':storyinit', function () {
       if (action === "send-wardrobe-all-inv") sendAllWardrobeToInventory(root);
 
       function refreshFilteredUI() {
-        // Check if filter is active
+        // Check if filter is active (use helper function)
         const currentFilter = State.variables.invSys?.filter || null;
-        const isFilterActive = currentFilter && (
-          (Array.isArray(currentFilter.category) && currentFilter.category.length > 0) ||
-          (Array.isArray(currentFilter.type) && currentFilter.type.length > 0) ||
-          (Array.isArray(currentFilter.slot) && currentFilter.slot.length > 0)
+        const filterActive = isFilterActive ? isFilterActive(currentFilter) : (
+          currentFilter && (
+            (Array.isArray(currentFilter.category) && currentFilter.category.length > 0) ||
+            (Array.isArray(currentFilter.type) && currentFilter.type.length > 0) ||
+            (Array.isArray(currentFilter.slot) && currentFilter.slot.length > 0)
+          )
         );
         
         // Update equipped slots (never filtered)
@@ -7353,7 +7639,7 @@ $(document).on(':storyinit', function () {
         
         // If filter is active, re-render inventory and wardrobe grids to show sorted order
         // Otherwise, just update slots
-        if (isFilterActive) {
+        if (filterActive) {
           const { rerenderInventoryGrid, rerenderWardrobeGrid } = Skycore.Systems.InventoryDOM;
           rerenderInventoryGrid(root);
           rerenderWardrobeGrid(root);
@@ -7368,9 +7654,9 @@ $(document).on(':storyinit', function () {
         // Update filter button
         const filterBtn = root.querySelector('[data-action="filter"]');
         if (filterBtn) {
-          filterBtn.classList.toggle("has-filter", isFilterActive);
+          filterBtn.classList.toggle("has-filter", filterActive);
           const text = filterBtn.textContent.replace(/\s*\*$/, "");
-          filterBtn.textContent = isFilterActive ? text + " *" : text;
+          filterBtn.textContent = filterActive ? text + " *" : text;
         }
         
         // Update remove filter buttons in actions sections
@@ -7530,7 +7816,7 @@ $(document).on(':storyinit', function () {
           }
         }
         // Let the click handler run first, then blur
-        setTimeout(blurActiveIfInsideRoot, 10);
+        setTimeout(() => blurActiveIfInsideRootFn(root), 10);
       }
     }, true);
 
@@ -7538,7 +7824,7 @@ $(document).on(':storyinit', function () {
     root.addEventListener("pointerdown", (ev) => {
       if (ev.pointerType === "touch" || ev.pointerType === "pen") {
         const btn = ev.target.closest("button, [role='button']");
-        if (!btn) setTimeout(blurActiveIfInsideRoot, 0);
+        if (!btn) setTimeout(() => blurActiveIfInsideRootFn(root), 0);
       }
     }, true);
 
@@ -7570,6 +7856,8 @@ $(document).on(':storyinit', function () {
       const item = getItem(itemId);
       const ghost = document.createElement("div");
       ghost.className = "inv-ghost";
+      const zIndex = (Skycore.Config?.UI?.ZIndex?.DRAG_GHOST) || 9999;
+      ghost.style.zIndex = zIndex;
       ghost.innerHTML = `<span class="inv-item" aria-hidden="true">${item ? item.icon : "❔"}</span>`;
       document.body.appendChild(ghost);
       return ghost;
@@ -7968,10 +8256,14 @@ $(document).on(':storyinit', function () {
       drag.captured = false;
 
       if (wasTouch) {
-        setTimeout(() => {
-          const ae = document.activeElement;
-          if (ae && ae instanceof HTMLElement && root.contains(ae)) ae.blur();
-        }, 0);
+        if (blurActive) {
+          setTimeout(() => blurActive(), 0);
+        } else {
+          setTimeout(() => {
+            const ae = document.activeElement;
+            if (ae && ae instanceof HTMLElement && root.contains(ae)) ae.blur();
+          }, 0);
+        }
       }
     }
 
@@ -8077,7 +8369,7 @@ $(document).on(':storyinit', function () {
     bindInteractions
   };
 })();
-/* twine-user-script #17: "12-inventory.js" */
+/* twine-user-script #20: "12-inventory.js" */
 /* =========================================================================
    Skycore System: Inventory + Wardrobe + UI + Modals + Drag/Drop (mobile-first)
 
@@ -8215,7 +8507,7 @@ $(document).on(':storyinit', function () {
 
   Skycore.Systems.Inventory = { ensureState };
 })();
-/* twine-user-script #18: "20-presentation-engine.js" */
+/* twine-user-script #21: "20-presentation-engine.js" */
 /* =========================================================================
    Skycore Simple Presentation Engine (FemScore)
 
@@ -8755,7 +9047,7 @@ $(document).on(':storyinit', function () {
     CFG
   };
 })();
-/* twine-user-script #19: "20-presentation-read.js" */
+/* twine-user-script #22: "20-presentation-read.js" */
 /* =========================================================================
    MC Sheet: Presentation Read (Gender Presentation Text)
    
@@ -8935,7 +9227,7 @@ $(document).on(':storyinit', function () {
     getGenderRead
   };
 })();
-/* twine-user-script #20: "20-presentation-state.js" */
+/* twine-user-script #23: "20-presentation-state.js" */
 /* =========================================================================
    Presentation State: Global Source of Truth
    
@@ -9136,7 +9428,7 @@ $(document).on(':storyinit', function () {
     getEquipment: getCurrentEquipment
   };
 })();
-/* twine-user-script #21: "20-stats-state.js" */
+/* twine-user-script #24: "20-stats-state.js" */
 /* =========================================================================
    MC Sheet v1: State Management
 ========================================================================= */
@@ -9284,7 +9576,7 @@ $(document).on(':storyinit', function () {
     ensureState
   };
 })();
-/* twine-user-script #22: "21-stats-render.js" */
+/* twine-user-script #25: "21-stats-render.js" */
 /* =========================================================================
    MC Sheet v1: Render Functions
 ========================================================================= */
@@ -9506,7 +9798,7 @@ $(document).on(':storyinit', function () {
     updatePresentationScore
   };
 })();
-/* twine-user-script #23: "22-stats.js" */
+/* twine-user-script #26: "22-stats.js" */
 /* =========================================================================
    MC Sheet v1: Main System File
 ========================================================================= */
@@ -9543,7 +9835,7 @@ $(document).on(':storyinit', function () {
 
   Skycore.Systems.Stats = { ensureState };
 })();
-/* twine-user-script #24: "30-character-display.js" */
+/* twine-user-script #27: "30-character-display.js" */
 /* =========================================================================
    Character Display Engine: Equipment-based sprite rendering
 ========================================================================= */
@@ -10134,7 +10426,7 @@ $(document).on(':storyinit', function () {
     CONFIG: DISPLAY_CONFIG
   };
 })();
-/* twine-user-script #25: "31-character-sidebar.js" */
+/* twine-user-script #28: "31-character-sidebar.js" */
 /* =========================================================================
    Character Display Sidebar: Reusable character display with presentation and quote
 ========================================================================= */
@@ -10401,7 +10693,7 @@ $(document).on(':storyinit', function () {
     bindActions: bindSidebarActions
   };
 })();
-/* twine-user-script #26: "32-character-sidebar-macro.js" */
+/* twine-user-script #29: "32-character-sidebar-macro.js" */
 /* =========================================================================
    Character Display Sidebar: Macro/Widget + UI Bar Integration
 ========================================================================= */
@@ -10632,7 +10924,7 @@ $(document).on(':storyinit', function () {
     initUIBarSidebar
   };
 })();
-/* twine-user-script #27: "33-eye-blink.js" */
+/* twine-user-script #30: "33-eye-blink.js" */
 /* =========================================================================
    Eye Blink Animation (Modular, Mobile-first)
    - Works with any .char-display element that contains .char-display-sprite-eyes
@@ -11077,7 +11369,7 @@ $(document).on(':storyinit', function () {
     });
   }
 })();
-/* twine-user-script #28: "34-mirror.js" */
+/* twine-user-script #31: "34-mirror.js" */
 /* =========================================================================
    Skycore System: Mirror Page (Mobile-first)
    - Left: full body character display (same engine as inventory)
@@ -11355,7 +11647,7 @@ $(document).on(':storyinit', function () {
     BACKGROUND_CONFIG: MIRROR_BACKGROUND_CONFIG
   };
 })();
-/* twine-user-script #29: "35-settings.js" */
+/* twine-user-script #32: "35-settings.js" */
 /* =========================================================================
    Skycore System: Settings Pages (Nested)
    - Settings Home: Main menu
@@ -11676,7 +11968,7 @@ $(document).on(':storyinit', function () {
     }
   });
 })();
-/* twine-user-script #30: "36-background-preload.js" */
+/* twine-user-script #33: "36-background-preload.js" */
 /* =========================================================================
    BackgroundPreload: Preload and decode background images to prevent flicker
    
@@ -11762,7 +12054,7 @@ $(document).on(':storyinit', function () {
     getPresetUrl
   };
 })();
-/* twine-user-script #31: "36-background-themes.js" */
+/* twine-user-script #34: "36-background-themes.js" */
 /* =========================================================================
    BackgroundThemes: unified background presets + sync logic
    Areas: mirror | inventory | sidebar
@@ -11854,7 +12146,7 @@ $(document).on(':storyinit', function () {
     notifyChanged
   };
 })();
-/* twine-user-script #32: "40-back-button.js" */
+/* twine-user-script #35: "40-back-button.js" */
 /* =========================================================================
    Back Button System
 
@@ -12082,7 +12374,7 @@ $(document).on(':storyinit', function () {
     remove: removeBackButton
   };
 })();
-/* twine-user-script #33: "41-room.js" */
+/* twine-user-script #36: "41-room.js" */
 /* =========================================================================
    Skycore System: Room Page (Hub)
 

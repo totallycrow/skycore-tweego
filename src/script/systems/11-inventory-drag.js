@@ -9,12 +9,14 @@
   Skycore.Systems = Skycore.Systems || {};
 
   const { CFG } = Skycore.Systems.InventoryConfig;
-  const { getItem, getAreaArray, isWearableClothes, getEquipSlot, findEquippedIndexBySlot, firstEmptyIndex } = Skycore.Systems.InventoryHelpers;
+  const { getItem, getAreaArray, isWearableClothes, getEquipSlot, findEquippedIndexBySlot, firstEmptyIndex, isFilterActive } = Skycore.Systems.InventoryHelpers;
   const { updateSlotEl, rerenderWardrobeGrid, clearDropTargets } = Skycore.Systems.InventoryDOM;
   const { placeInWardrobe, compactWardrobe, ensureWardrobeHasEmptyRow, expandWardrobeOneRow } = Skycore.Systems.InventoryWardrobe;
   const { AlertModal, ConfirmModal, ItemModal, FilterModal } = Skycore.Systems.InventoryModals;
   const { cleanUpEquipped, cleanUpInventory, cleanUpWardrobe, unequipAll, sendAllInventoryToWardrobe, sendAllWardrobeToInventory } = Skycore.Systems.InventoryActions;
   const { setActiveTab } = Skycore.Systems.InventoryTabs;
+  const { blurActiveIfInsideRoot, resetFocus, blurActive } = Skycore.Systems.FocusManager || {};
+  const { Offscreen } = Skycore.Config?.UI || {};
 
   // ---- Pointer interactions: tap vs drag ---------------------------------
   function bindInteractions(root) {
@@ -22,37 +24,33 @@
     if (root.hasAttribute("data-interactions-bound")) return;
     root.setAttribute("data-interactions-bound", "true");
     
-    function blurActiveIfInsideRoot() {
+    // Use centralized FocusManager if available, otherwise use local implementation
+    const blurActiveIfInsideRootFn = blurActiveIfInsideRoot || function(container) {
       const ae = document.activeElement;
-      if (!ae) return;
-      if (!(ae instanceof HTMLElement)) return;
-      if (!root.contains(ae)) return;
-    
-      // Only blur interactive controls (prevents annoying blur on other things)
+      if (!ae || !(ae instanceof HTMLElement)) return;
+      const containerEl = container || root;
+      if (containerEl && containerEl instanceof HTMLElement && !containerEl.contains(ae)) return;
       const tag = ae.tagName;
       if (tag === "BUTTON" || tag === "A" || ae.classList.contains("inv-slot") || ae.classList.contains("inv-btn")) {
         ae.blur();
       }
-    }
+    };
 
-    // Function to reset focus by simulating a background click (iOS workaround)
-    function resetFocus() {
-      // Create a temporary invisible button, click it, then remove it
-      // This forces iOS to move focus away from the clicked button
+    const resetFocusFn = resetFocus || function() {
       const temp = document.createElement("button");
       temp.style.position = "fixed";
       temp.style.opacity = "0";
       temp.style.pointerEvents = "none";
       temp.style.width = "1px";
       temp.style.height = "1px";
-      temp.style.top = "-9999px";
+      temp.style.top = (Offscreen && Offscreen.HIDDEN_Y) ? `${Offscreen.HIDDEN_Y}px` : "-9999px";
       document.body.appendChild(temp);
       temp.focus();
       temp.click();
       setTimeout(() => {
         try { document.body.removeChild(temp); } catch(e) {}
       }, 0);
-    }
+    };
 
     // Tabs
     root.addEventListener("click", (ev) => {
@@ -60,7 +58,7 @@
       if (tabBtn) {
         setActiveTab(root, tabBtn.dataset.tabBtn);
         // Reset focus by clicking background to prevent iOS focus stickiness
-        setTimeout(resetFocus, 0);
+        setTimeout(resetFocusFn, 0);
         return;
       }
 
@@ -82,12 +80,14 @@
       if (action === "send-wardrobe-all-inv") sendAllWardrobeToInventory(root);
 
       function refreshFilteredUI() {
-        // Check if filter is active
+        // Check if filter is active (use helper function)
         const currentFilter = State.variables.invSys?.filter || null;
-        const isFilterActive = currentFilter && (
-          (Array.isArray(currentFilter.category) && currentFilter.category.length > 0) ||
-          (Array.isArray(currentFilter.type) && currentFilter.type.length > 0) ||
-          (Array.isArray(currentFilter.slot) && currentFilter.slot.length > 0)
+        const filterActive = isFilterActive ? isFilterActive(currentFilter) : (
+          currentFilter && (
+            (Array.isArray(currentFilter.category) && currentFilter.category.length > 0) ||
+            (Array.isArray(currentFilter.type) && currentFilter.type.length > 0) ||
+            (Array.isArray(currentFilter.slot) && currentFilter.slot.length > 0)
+          )
         );
         
         // Update equipped slots (never filtered)
@@ -96,7 +96,7 @@
         
         // If filter is active, re-render inventory and wardrobe grids to show sorted order
         // Otherwise, just update slots
-        if (isFilterActive) {
+        if (filterActive) {
           const { rerenderInventoryGrid, rerenderWardrobeGrid } = Skycore.Systems.InventoryDOM;
           rerenderInventoryGrid(root);
           rerenderWardrobeGrid(root);
@@ -111,9 +111,9 @@
         // Update filter button
         const filterBtn = root.querySelector('[data-action="filter"]');
         if (filterBtn) {
-          filterBtn.classList.toggle("has-filter", isFilterActive);
+          filterBtn.classList.toggle("has-filter", filterActive);
           const text = filterBtn.textContent.replace(/\s*\*$/, "");
-          filterBtn.textContent = isFilterActive ? text + " *" : text;
+          filterBtn.textContent = filterActive ? text + " *" : text;
         }
         
         // Update remove filter buttons in actions sections
@@ -273,7 +273,7 @@
           }
         }
         // Let the click handler run first, then blur
-        setTimeout(blurActiveIfInsideRoot, 10);
+        setTimeout(() => blurActiveIfInsideRootFn(root), 10);
       }
     }, true);
 
@@ -281,7 +281,7 @@
     root.addEventListener("pointerdown", (ev) => {
       if (ev.pointerType === "touch" || ev.pointerType === "pen") {
         const btn = ev.target.closest("button, [role='button']");
-        if (!btn) setTimeout(blurActiveIfInsideRoot, 0);
+        if (!btn) setTimeout(() => blurActiveIfInsideRootFn(root), 0);
       }
     }, true);
 
@@ -313,6 +313,8 @@
       const item = getItem(itemId);
       const ghost = document.createElement("div");
       ghost.className = "inv-ghost";
+      const zIndex = (Skycore.Config?.UI?.ZIndex?.DRAG_GHOST) || 9999;
+      ghost.style.zIndex = zIndex;
       ghost.innerHTML = `<span class="inv-item" aria-hidden="true">${item ? item.icon : "❔"}</span>`;
       document.body.appendChild(ghost);
       return ghost;
@@ -711,10 +713,14 @@
       drag.captured = false;
 
       if (wasTouch) {
-        setTimeout(() => {
-          const ae = document.activeElement;
-          if (ae && ae instanceof HTMLElement && root.contains(ae)) ae.blur();
-        }, 0);
+        if (blurActive) {
+          setTimeout(() => blurActive(), 0);
+        } else {
+          setTimeout(() => {
+            const ae = document.activeElement;
+            if (ae && ae instanceof HTMLElement && root.contains(ae)) ae.blur();
+          }, 0);
+        }
       }
     }
 
